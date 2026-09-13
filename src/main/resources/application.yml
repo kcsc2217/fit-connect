@@ -1,0 +1,5 @@
+spring:
+  application:
+    name: fitness-platform
+  profiles:
+    active: local
