@@ -43,14 +43,22 @@ com.fitness
 │   ├── domain/
 │   ├── repository/
 │   └── dto/
-└── reservation/         # 선착순 수강신청 (Redis Lua 원자적 처리)
+├── reservation/         # 선착순 수강신청 (Redis Lua 원자적 처리)
+│   ├── controller/
+│   ├── service/
+│   ├── domain/
+│   ├── repository/
+│   ├── lock/            # Redis Lua script 실행기, Redisson 락
+│   └── dto/
+└── diet/                # 식단 기록 및 LLM 피드백
     ├── controller/
     ├── service/
     ├── domain/
     ├── repository/
-    ├── lock/            # Redis Lua script 실행기, Redisson 락
     └── dto/
 ```
+
+또한 각 엔티티는 `com.fitness.common.entity.BaseTimeEntity`(`createdAt` JPA Auditing)를 상속한다.
 
 새 도메인이 FRD에 추가되면 위와 같은 레이어 구조로 최상위에 패키지를 하나 더 만든다 (예: `payment/`, `notification/`).
 
