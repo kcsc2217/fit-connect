@@ -87,7 +87,7 @@ fun `잔여 수량이 0이면 예약은 SLOT_EXHAUSTED 예외를 던진다`() {
 ```
 
 ## 로컬 실행
-- 인프라: MySQL(`fitness` DB, root/test1234), Redis — 둘 다 로컬에 직접 설치되어 있음 (Docker 미사용). Redis는 `brew services`가 이 macOS에서 프로세스를 못 띄우는 이슈가 있어 `redis-server /opt/homebrew/etc/redis.conf --daemonize yes`로 수동 기동한다.
+- 인프라: MySQL(`fitness` DB), Redis — 둘 다 로컬에 직접 설치되어 있음 (Docker 미사용). 접속 정보(계정/비밀번호)는 `application-local.yml`(gitignore 대상, 커밋 금지)에 각자 설정. Redis는 `brew services`가 이 macOS에서 프로세스를 못 띄우는 이슈가 있어 `redis-server /opt/homebrew/etc/redis.conf --daemonize yes`로 수동 기동한다.
 - 프로파일: 기본 활성 프로파일은 `local` (`application-local.yml`에 datasource/redis/kafka 접속 정보).
 - 실행: `./gradlew bootRun`
 - Swagger UI: `http://localhost:8080/swagger-ui/index.html`
