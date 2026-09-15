@@ -1,12 +1,30 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # Traffic-Gym (Fitness Platform)
 
-PT 클래스 선착순 수강신청 & 피트니스 플랫폼. 상세 기능 명세는 `docs/frd.md` 참고.
+PT 클래스 선착순 수강신청 & 피트니스 플랫폼. 상세 기능 명세는 `docs/frd.md`, ERD는 `docs/erd-dia.md` 참고.
 
 ## 기술 스택
 - Kotlin 1.9.25 / JDK 21 / Spring Boot 3.3.3 / Gradle Kotlin DSL
 - MySQL 8.x (JPA + QueryDSL), Redis (Spring Data Redis + Redisson), Kafka
 - Actuator + Micrometer(Prometheus), springdoc-openapi(Swagger)
 - 테스트: JUnit5, Mockk
+
+## 개발 명령어
+
+```bash
+./gradlew build                 # 전체 빌드 (컴파일 + 테스트)
+./gradlew bootRun               # 로컬 실행 (local 프로파일, 8080 포트)
+./gradlew test                  # 전체 테스트
+./gradlew test --tests "com.fitness.reservation.ReservationServiceTest"              # 클래스 단위
+./gradlew test --tests "com.fitness.reservation.ReservationServiceTest.잔여 수량이 0이면*"  # 메서드 단위 (백틱 테스트명은 글롭 패턴으로 매칭)
+```
+
+- Gradle 래퍼는 **8.10 고정**이다. Kotlin 1.9.25의 kapt가 Gradle 9의 API 변경과 호환되지 않아 임의로 올리면 빌드가 깨진다.
+- QueryDSL Q클래스는 kapt가 `build/generated/source/kapt/main`에 생성한다. 엔티티 필드를 바꾼 뒤 Q클래스가 안 잡히면 `./gradlew clean compileKotlin`으로 재생성한다.
+- lint/formatter는 아직 구성되어 있지 않다.
 
 ## 패키지 구조
 
@@ -17,6 +35,7 @@ com.fitness
 ├── FitnessApplication.kt
 ├── config/              # 전역 설정 빈 (Swagger, Redis, Security, Kafka, QueryDSL 등)
 ├── common/              # 도메인에 속하지 않는 공통 코드
+│   ├── entity/          # BaseTimeEntity 등 공통 엔티티 베이스
 │   ├── exception/       # GlobalExceptionHandler, 커스텀 예외, 에러 코드
 │   ├── response/        # 공통 API 응답 포맷
 │   └── util/
@@ -58,7 +77,7 @@ com.fitness
     └── dto/
 ```
 
-또한 각 엔티티는 `com.fitness.common.entity.BaseTimeEntity`(`createdAt` JPA Auditing)를 상속한다.
+각 엔티티는 `com.fitness.common.entity.BaseTimeEntity`(`createdAt` JPA Auditing)를 상속한다.
 
 새 도메인이 FRD에 추가되면 위와 같은 레이어 구조로 최상위에 패키지를 하나 더 만든다 (예: `payment/`, `notification/`).
 
@@ -94,9 +113,11 @@ fun `잔여 수량이 0이면 예약은 SLOT_EXHAUSTED 예외를 던진다`() {
 }
 ```
 
-## 로컬 실행
-- 인프라: MySQL(`fitness` DB), Redis — 둘 다 로컬에 직접 설치되어 있음 (Docker 미사용). 접속 정보(계정/비밀번호)는 `application-local.yml`(gitignore 대상, 커밋 금지)에 각자 설정. Redis는 `brew services`가 이 macOS에서 프로세스를 못 띄우는 이슈가 있어 `redis-server /opt/homebrew/etc/redis.conf --daemonize yes`로 수동 기동한다.
+## Git 커밋 규칙
+- 커밋 메시지는 **한글로 작성**한다.
+
+## 로컬 실행 환경
+- 인프라: MySQL(`fitness` DB), Redis — 둘 다 로컬에 직접 설치되어 있음 (Docker 미사용). 접속 정보(계정/비밀번호)는 `application-local.yml`(gitignore 대상, 커밋 금지)에 각자 설정.
+- Redis는 `brew services`가 이 macOS에서 프로세스를 못 띄우는 이슈가 있어 `redis-server /opt/homebrew/etc/redis.conf --daemonize yes`로 수동 기동한다.
 - 프로파일: 기본 활성 프로파일은 `local` (`application-local.yml`에 datasource/redis/kafka 접속 정보).
-- 실행: `./gradlew bootRun`
-- Swagger UI: `http://localhost:8080/swagger-ui/index.html`
-- Gradle 래퍼는 8.10 고정 (Kotlin 1.9.25의 kapt가 Gradle 9 API 변경과 호환되지 않음). `gradle.properties`의 `org.gradle.java.home`이 Homebrew JDK 21을 가리킨다.
+- `gradle.properties`가 아니라 `~/.gradle/gradle.properties`(전역, 미커밋)의 `org.gradle.java.home`이 Homebrew JDK 21을 가리킨다 — 로컬 JDK가 25뿐이라 Gradle 8.10 데몬 구동용으로 별도 지정한 것.
