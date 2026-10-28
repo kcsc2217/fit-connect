@@ -43,3 +43,6 @@ bin/
 
 ### App (local secrets) ###
 application-local.yml
+### Claude Code ###
+.claude/settings.local.json
+.claude/hooks/caught.log

@@ -2,9 +2,32 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-# Traffic-Gym (Fitness Platform)
+# Traffic-Gym (나만의 트레이너 쌤)
 
-PT 클래스 선착순 수강신청 & 피트니스 플랫폼. 상세 기능 명세는 `docs/frd.md`, ERD는 `docs/erd-dia.md` 참고.
+내 신체 정보와 운동 기록을 아는 AI 트레이너가 매일 오늘의 운동·식단을 짜서 알려주는 앱의 백엔드. 요구사항은 `docs/prd.md`(v2)가 기준이다.
+
+> **전환 중:** PRD v2로 요구사항이 바뀌었다. 아래 "패키지 구조"와 `docs/frd.md`, `docs/erd-dia.md`, 기존 엔티티(trainer, ptclass, reservation)는 이전 버전(PT 클래스 수강신청) 기준이다. 새 도메인은 PRD 10장의 모듈(user, workout, routine, notification, challenge, llm)을 따르고, 구조가 확정되면 이 문서를 갱신한다.
+
+## 아키텍처 원칙
+- 숫자(무게·세트·반복 수·칼로리)는 서버 규칙이 계산한다. LLM은 종목 구성·순서·문구만 만든다.
+- LLM에는 서버가 SQL로 거른 후보 종목만 넘긴다. LLM 응답은 JSON 스키마·규칙 검증을 통과해야 저장하고, 실패하면 대체 응답(기본 루틴)을 쓴다.
+- 멱등성이 필요한 쓰기는 `(user_id, client_id)` 유니크 제약 + upsert로 처리한다.
+- 동시성이 필요한 쓰기(챌린지 정원 등)는 `docs/decisions/`의 결정을 따른다. Redis 원자 연산 + DB 유니크 제약을 최후 안전망으로 둔다.
+- 서버 메모리에 상태를 두지 않는다 (여러 대로 늘려도 동작해야 한다).
+
+## 작업 절차
+모든 작업은 `docs/workflow.md`의 절차(명세 → 계획 → 테스트 먼저 → 구현 → 리뷰 → 성능 확인 → 기록)를 따른다. 각 단계에는 `.claude/skills/`의 스킬이 있다.
+
+- **작업을 시작할 때 크기(S/M/L)를 제안하고 사용자 확정을 받는다.** 기준은 위험도다. 동시성·멱등성·LLM이 걸리면 최소 M.
+- S: 채팅으로 계획(고칠 파일, 내용, 테스트)을 말하고 승인받은 뒤 테스트 → 구현.
+- M/L: `/plan-feature`로 계획 모드에서 계획(핵심 코드 스케치 포함)을 쓰고, 승인되면 `docs/plans/`에 저장한 뒤 테스트부터 작성한다. L은 계획을 M 단위로 쪼갠다.
+
+## 하지 말 것
+- **계획(`docs/plans/`)이 사용자 승인을 받기 전에 구현을 시작하지 않는다.**
+- 엔티티를 API 응답으로 직접 반환하지 않는다. 반드시 DTO로 변환한다.
+- 테스트 없이 작업을 완료 처리하지 않는다. 모든 API는 통합 테스트를 가진다.
+- LLM 응답을 검증 없이 저장하거나 사용자에게 보여주지 않는다.
+- 비밀값(API 키, DB 비밀번호)을 코드나 커밋되는 파일에 넣지 않는다.
 
 ## 기술 스택
 - Kotlin 1.9.25 / JDK 21 / Spring Boot 3.3.3 / Gradle Kotlin DSL
@@ -24,7 +47,12 @@ PT 클래스 선착순 수강신청 & 피트니스 플랫폼. 상세 기능 명�
 
 - Gradle 래퍼는 **8.10 고정**이다. Kotlin 1.9.25의 kapt가 Gradle 9의 API 변경과 호환되지 않아 임의로 올리면 빌드가 깨진다.
 - QueryDSL Q클래스는 kapt가 `build/generated/source/kapt/main`에 생성한다. 엔티티 필드를 바꾼 뒤 Q클래스가 안 잡히면 `./gradlew clean compileKotlin`으로 재생성한다.
-- lint/formatter는 아직 구성되어 있지 않다.
+- formatter는 프로젝트에 없고, ktlint가 로컬에 설치돼 있으면 훅이 수정한 파일에만 적용한다.
+
+### 자동 검증 훅 (`.claude/settings.json`)
+- Kotlin 파일 수정 직후: ktlint 포맷(설치 시) + `compileKotlin compileTestKotlin`. 실패하면 에러가 돌아오니 바로 고친다.
+- 작업 종료 시: 코드 변경이 있으면 `./gradlew test`. 실패하면 최대 3번까지 스스로 고친다.
+- 훅이 잡은 오류는 `.claude/hooks/caught.log`에 쌓인다 (`docs/ai-log.md` 기록용).
 
 ## 패키지 구조
 
