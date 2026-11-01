@@ -1,5 +1,25 @@
+# 공통 설정. 기본값은 운영 기준(Flyway + validate)이라, 프로파일을 빠뜨려도 테이블을 지우지 않는다.
+# 로컬은 application-local.yml(미커밋, jar에서 제외)에서 ddl-auto=create, flyway.enabled=false로 덮어쓴다.
 spring:
   application:
     name: fitness-platform
   profiles:
     active: local
+  datasource:
+    hikari:
+      # DB 연결의 시간대를 UTC로 고정한다 (docs/decisions/0002-utc-instant.md).
+      # Instant는 UTC로, LocalTime·LocalDate는 변환 없이 저장되고, SQL의 NOW() 등도 UTC 기준이 된다.
+      # hibernate.jdbc.time_zone은 쓰지 않는다: LocalTime까지 서버 시간대만큼 밀어서 저장한다.
+      data-source-properties:
+        connectionTimeZone: UTC
+        forceConnectionTimeZoneToSession: true
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        type.preferred_instant_jdbc_type: TIMESTAMP  # Instant를 DATETIME(6)에 매핑
+  flyway:
+    enabled: true
+    locations: classpath:db/migration

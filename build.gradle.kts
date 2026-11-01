@@ -33,6 +33,10 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     runtimeOnly("com.mysql:mysql-connector-j")
 
+    // Flyway (운영 스키마 관리. 로컬은 ddl-auto=create)
+    implementation("org.flywaydb:flyway-core")
+    implementation("org.flywaydb:flyway-mysql")
+
     // QueryDSL
     implementation("com.querydsl:querydsl-jpa:$queryDslVersion:jakarta")
     kapt("com.querydsl:querydsl-apt:$queryDslVersion:jakarta")
@@ -43,9 +47,6 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
     implementation("org.redisson:redisson-spring-boot-starter:3.34.0")
 
-    // Kafka (Messaging)
-    implementation("org.springframework.kafka:spring-kafka")
-
     // Actuator & Observability (Prometheus)
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("io.micrometer:micrometer-registry-prometheus")
@@ -55,7 +56,6 @@ dependencies {
 
     // Test
     testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testImplementation("org.springframework.kafka:spring-kafka-test")
     testImplementation("io.mockk:mockk:1.13.12")
     testImplementation("com.ninja-squad:springmockk:4.0.2")
 }
@@ -77,6 +77,14 @@ sourceSets {
     }
 }
 
+// 로컬 설정(DB 비밀번호, ddl-auto=create)은 배포 파일에 넣지 않는다.
+// 들어가면 프로파일 지정 없이 jar를 실행했을 때 local이 켜져 운영 테이블을 지울 수 있다.
+tasks.withType<Jar> {
+    exclude("application-local.yml")
+}
+
 tasks.withType<Test> {
     useJUnitPlatform()
+    // 시간대 버그가 UTC 장비(CI 등)에서 숨지 않도록, 테스트는 항상 UTC가 아닌 시간대에서 돈다
+    systemProperty("user.timezone", "Asia/Seoul")
 }

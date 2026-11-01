@@ -1,0 +1,11 @@
+# 테스트 설정. @ActiveProfiles("local", "test")로 켜서 DB 계정은 application-local.yml에서 가져오고,
+# DB 주소와 스키마 관리 방식만 덮어쓴다. 테스트는 Flyway 마이그레이션으로 만든 스키마를 엔티티와 비교(validate)한다.
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/fitness_test?createDatabaseIfNotExist=true&useSSL=false&characterEncoding=UTF-8
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+    clean-disabled: false   # 테스트 시작마다 clean → migrate (TestFlywayConfig)

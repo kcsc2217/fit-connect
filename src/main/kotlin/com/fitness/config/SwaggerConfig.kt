@@ -13,8 +13,8 @@ class SwaggerConfig {
         OpenAPI()
             .info(
                 Info()
-                    .title("Fitness Platform API")
-                    .description("PT Class First-Come-First-Served Reservation & Fitness App")
+                    .title("나만의 트레이너 쌤 API")
+                    .description("기록을 아는 AI 트레이너가 오늘의 운동과 식단을 짜 주는 앱의 백엔드")
                     .version("v0.0.1")
             )
 }

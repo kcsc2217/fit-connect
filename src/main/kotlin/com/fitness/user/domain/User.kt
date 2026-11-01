@@ -9,31 +9,18 @@ import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.Table
+import java.time.Instant
 
 @Entity
 @Table(name = "users")
 class User(
 
-    @Column(nullable = false)
-    var email: String,
-
-    @Column(nullable = false)
+    @Column(nullable = false, length = 30)
     var nickname: String,
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    var provider: AuthProvider,
-
-    @Column(name = "provider_id", nullable = false, unique = true)
-    var providerId: String,
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    var role: UserRole = UserRole.ROLE_USER,
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "target_goal")
-    var targetGoal: TargetGoal? = null,
+    @Column(nullable = false, length = 20)
+    var status: UserStatus = UserStatus.ONBOARDING,
 
 ) : BaseTimeEntity() {
 
@@ -41,4 +28,12 @@ class User(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null
         protected set
+
+    var withdrawnAt: Instant? = null
+        protected set
+
+    fun withdraw(now: Instant) {
+        status = UserStatus.WITHDRAWN
+        withdrawnAt = now
+    }
 }
