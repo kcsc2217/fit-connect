@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Traffic-Gym (나만의 트레이너 쌤)
 
-내 신체 정보와 운동 기록을 아는 AI 트레이너가 매일 오늘의 운동·식단을 짜서 알려주는 앱의 백엔드. 요구사항은 `docs/prd.md`(v2)가 기준이다.
+내 신체 정보와 운동 기록을 아는 AI 트레이너가 매일 오늘의 운동·식단을 짜서 알려주는 앱의 백엔드. 요구사항은 `docs/prd.md`(v2), DB는 `docs/db-schema.md`가 기준이다.
 
-> **전환 중:** PRD v2로 요구사항이 바뀌었다. 아래 "패키지 구조"와 `docs/frd.md`, `docs/erd-dia.md`, 기존 엔티티(trainer, ptclass, reservation)는 이전 버전(PT 클래스 수강신청) 기준이다. 새 도메인은 PRD 10장의 모듈(user, workout, routine, notification, challenge, llm)을 따르고, 구조가 확정되면 이 문서를 갱신한다.
+> **전환 중:** PRD v2로 요구사항이 바뀌었다. 아래 "패키지 구조", "도메인 간 참조 규칙"과 기존 엔티티(trainer, ptclass, reservation, diet)는 이전 버전(PT 클래스 수강신청) 기준이라 따르지 않는다. 새 코드는 PRD 10장의 모듈(user, workout, routine, notification, challenge, llm)과 `docs/db-schema.md`의 원칙(모듈 간에는 ID로만 참조, FK는 같은 모듈 안에서만)을 따른다. 엔티티 재구성 작업에서 이 문서를 갱신한다.
 
 ## 아키텍처 원칙
 - 숫자(무게·세트·반복 수·칼로리)는 서버 규칙이 계산한다. LLM은 종목 구성·순서·문구만 만든다.
@@ -41,8 +41,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ./gradlew build                 # 전체 빌드 (컴파일 + 테스트)
 ./gradlew bootRun               # 로컬 실행 (local 프로파일, 8080 포트)
 ./gradlew test                  # 전체 테스트
-./gradlew test --tests "com.fitness.reservation.ReservationServiceTest"              # 클래스 단위
-./gradlew test --tests "com.fitness.reservation.ReservationServiceTest.잔여 수량이 0이면*"  # 메서드 단위 (백틱 테스트명은 글롭 패턴으로 매칭)
+./gradlew test --tests "com.fitness.workout.service.SyncServiceTest"                 # 클래스 단위
+./gradlew test --tests "com.fitness.workout.service.SyncServiceTest.같은 client_id로*"  # 메서드 단위 (백틱 테스트명은 글롭 패턴으로 매칭)
 ```
 
 - Gradle 래퍼는 **8.10 고정**이다. Kotlin 1.9.25의 kapt가 Gradle 9의 API 변경과 호환되지 않아 임의로 올리면 빌드가 깨진다.
@@ -107,7 +107,7 @@ com.fitness
 
 각 엔티티는 `com.fitness.common.entity.BaseTimeEntity`(`createdAt` JPA Auditing)를 상속한다.
 
-새 도메인이 FRD에 추가되면 위와 같은 레이어 구조로 최상위에 패키지를 하나 더 만든다 (예: `payment/`, `notification/`).
+새 도메인이 PRD에 추가되면 위와 같은 레이어 구조로 최상위에 패키지를 하나 더 만든다 (예: `payment/`, `notification/`).
 
 ### 도메인 간 참조 규칙
 - 다른 도메인의 **Repository를 직접 주입받지 않는다.** 반드시 그 도메인의 Service를 통해서만 접근한다 (캡슐화 유지).
