@@ -138,4 +138,5 @@ fun `같은 FCM 토큰을 두 번 저장하면 유니크 제약 위반 예외가
   - `src/test/resources/application-test.yml`(커밋): `fitness_test` DB(없으면 자동 생성), Flyway + validate. 테스트는 `local,test` 프로파일로 떠서 계정은 local 설정을 그대로 쓴다. DB 이름이 `_test`로 끝나지 않으면 clean 전에 멈춘다.
   - 테스트 JVM은 항상 `Asia/Seoul` 시간대로 돈다 (UTC 장비에서 시간대 버그가 숨지 않게).
 - 테스트와 종료 시 테스트 훅은 로컬 MySQL이 켜져 있어야 통과한다.
+- 로컬·테스트 JDBC URL에는 `useSSL=false&allowPublicKeyRetrieval=true`를 둔다. 없으면 MySQL 비밀번호를 바꾼 직후 `Public Key Retrieval is not allowed`로 접속이 실패하고, 앱에서는 `Unable to determine Dialect without JDBC metadata`로 보인다.
 - `gradle.properties`가 아니라 `~/.gradle/gradle.properties`(전역, 미커밋)의 `org.gradle.java.home`이 Homebrew JDK 21을 가리킨다 — 로컬 JDK가 25뿐이라 Gradle 8.10 데몬 구동용으로 별도 지정한 것.
