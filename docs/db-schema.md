@@ -306,7 +306,7 @@ erDiagram
 | 컬럼 | 타입 | 제약 | 설명 |
 | --- | --- | --- | --- |
 | user_id | BIGINT | PK, FK → users.id | |
-| equipment | VARCHAR(30) | PK | BARBELL, DUMBBELL, MACHINE, CABLE, BENCH, PULLUP_BAR, KETTLEBELL, BODYWEIGHT |
+| equipment | VARCHAR(30) | PK | BARBELL, DUMBBELL, MACHINE, CABLE, BENCH, RACK, DIP_BAR, PULLUP_BAR, KETTLEBELL, BODYWEIGHT |
 
 #### device_token
 
@@ -333,16 +333,18 @@ FCM 푸시 토큰. 한 사용자가 여러 기기를 쓸 수 있다.
 | id | BIGINT | PK | |
 | code | VARCHAR(50) | NOT NULL | 예: BACK_SQUAT. LLM 출력과 평가에서 사용 |
 | name_ko | VARCHAR(50) | NOT NULL | 백 스쿼트 |
+| name_en | VARCHAR(100) | NOT NULL | Barbell Squat (LLM 프롬프트용) |
 | body_part | VARCHAR(20) | NOT NULL | CHEST, BACK, SHOULDER, LEGS, ARMS, CORE |
 | load_type | VARCHAR(20) | NOT NULL | BARBELL, DUMBBELL, MACHINE, BODYWEIGHT (과부하 규칙 증가폭 결정) |
 | min_level | VARCHAR(20) | NOT NULL | 권장 최소 경력 |
 | compound | BOOLEAN | NOT NULL | 다관절 운동 여부 (순서 배치용) |
 | default_rest_sec | SMALLINT | NOT NULL | 기본 휴식 시간 |
 | active | BOOLEAN | NOT NULL | 비활성 종목은 후보에서 제외 |
+| source_id | VARCHAR(100) | NULL | free-exercise-db 원본 ID (자세 설명·이미지 연결용) |
 
 - 유니크: `(code)`
 - 인덱스: `(body_part, active)`
-- 초기 데이터: 50~80개, Flyway 마이그레이션으로 삽입
+- 초기 데이터: free-exercise-db에서 고른 65개(`docs/data/exercises.csv`), Flyway 마이그레이션(V3)으로 삽입. 맨몸 종목은 exercise_equipment 행 없음
 
 #### exercise_equipment
 
@@ -616,6 +618,6 @@ ShedLock 라이브러리가 정한 형식을 그대로 사용.
 
 - [ ] 회원 탈퇴 시 운동 기록을 즉시 삭제할지, 일정 기간 보관 후 삭제할지
 - [ ] 같은 이메일의 다른 소셜 계정을 자동 연결할지
-- [ ] 1차 종목 사전 규모 (50~80개 예상)
+- [x] 1차 종목 사전 규모 → 65개 (free-exercise-db에서 선별)
 - [ ] 추정 1RM 공식 (Epley 또는 Brzycki)
 - [ ] llm_call_log, event_log 보관 기간

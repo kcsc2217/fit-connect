@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 내 신체 정보와 운동 기록을 아는 AI 트레이너가 매일 오늘의 운동·식단을 짜서 알려주는 앱의 백엔드. 요구사항은 `docs/prd.md`(v2), DB는 `docs/db-schema.md`가 기준이다.
 
-> **진행 중:** 엔티티 재구성(`docs/plans/001-entity-rebuild-user.md`부터)으로 user 모듈까지 만들었다. workout, routine·notification·llm, challenge·공통 모듈은 다음 계획(002~004)에서 만든다.
+> **진행 중:** 엔티티 재구성(`docs/plans/001-entity-rebuild-user.md`부터)으로 user, workout 모듈까지 만들었다. routine·notification·llm, challenge·공통 모듈은 다음 계획(003~004)에서 만든다.
 
 ## 아키텍처 원칙
 - 숫자(무게·세트·반복 수·칼로리)는 서버 규칙이 계산한다. LLM은 종목 구성·순서·문구만 만든다.
@@ -69,7 +69,7 @@ com.fitness
 │   ├── exception/       # GlobalExceptionHandler, 커스텀 예외, 에러 코드
 │   └── response/        # 공통 API 응답 포맷
 ├── user/                # 소셜 로그인, JWT, 온보딩 프로필, 장비, 기기 토큰   ← 구현됨
-├── workout/             # 종목 사전, 세션·세트 기록, 오프라인 동기화, PR·주간 볼륨
+├── workout/             # 종목 사전, 세션·세트 기록, 오프라인 동기화, PR·주간 볼륨   ← 엔티티·후보 종목 조회 구현됨
 ├── routine/             # 오늘의 운동 생성 (서버 규칙 + LLM), 기본 루틴 대체
 ├── notification/        # 알림 예약, FCM 푸시, 발송 기록
 ├── llm/                 # LLM 클라이언트, 프롬프트 버전, 호출 로그, 재시도·대체
@@ -97,6 +97,9 @@ com.fitness
 - 복합 키는 `@IdClass`가 아니라 `@Embeddable` + `@EmbeddedId` (kotlin-jpa 플러그인이 기본 생성자를 만들어 주도록).
   - ID를 직접 정하는 엔티티를 새 객체로 `save()`하면 merge되고, 반환된 객체의 `createdAt`은 null이다. 응답에 쓸 때는 다시 조회한다.
 - 로컬 `create`에서는 FK가 생기지 않는다 (엔티티에 연관관계가 없어서). FK 위반은 저장소 테스트로 확인한다.
+- 앱이 만든 UUID(`client_id`)는 Kotlin `UUID` → `BINARY(16)`. 별도 설정 없이 매핑된다.
+- 초기 종목 사전은 `docs/data/*.csv`(free-exercise-db에서 고른 종목)가 원본이다. 바꿀 때는 CSV를 고치고 `python3 scripts/generate_exercise_seed.py`로 `V3__seed_exercises.sql`을 다시 만든다 (운영 적용 후에는 새 버전으로 추가). 로컬은 `application-local.yml`의 `spring.sql.init`이 같은 V3 파일을 실행한다. 운영 배포 후 종목을 V4 이후로 추가하면 `spring.sql.init.data-locations`에도 그 파일을 추가해야 로컬에 반영된다. `ExerciseSeedTest`가 DB 내용을 CSV와 통째로 비교한다.
+- 맨몸 종목은 `exercise_equipment` 행이 없다 (장비와 관계없이 항상 후보). 종목 조회는 다른 모듈에서 `ExerciseService`를 통해서만 한다.
 
 ## 테스트 작성 규칙
 
@@ -134,9 +137,10 @@ fun `같은 FCM 토큰을 두 번 저장하면 유니크 제약 위반 예외가
 - Redis는 `brew services`가 이 macOS에서 프로세스를 못 띄우는 이슈가 있어 `redis-server /opt/homebrew/etc/redis.conf --daemonize yes`로 수동 기동한다.
 - 설정은 세 겹이다.
   - `application.yml`(커밋): 운영 기준. Flyway 켬, `ddl-auto=validate`, 시각 UTC. 기본 활성 프로파일은 `local`.
-  - `application-local.yml`(미커밋, jar에서 제외): `fitness` DB 접속 정보, `ddl-auto=create`, Flyway 끔.
+  - `application-local.yml`(미커밋, jar에서 제외): `fitness` DB 접속 정보, `ddl-auto=create`, Flyway 끔, 초기 종목 시드 실행(`spring.jpa.defer-datasource-initialization: true`, `spring.sql.init.mode: always`, `spring.sql.init.encoding: UTF-8`, `spring.sql.init.data-locations: classpath:db/migration/V3__seed_exercises.sql`).
   - `src/test/resources/application-test.yml`(커밋): `fitness_test` DB(없으면 자동 생성), Flyway + validate. 테스트는 `local,test` 프로파일로 떠서 계정은 local 설정을 그대로 쓴다. DB 이름이 `_test`로 끝나지 않으면 clean 전에 멈춘다.
   - 테스트 JVM은 항상 `Asia/Seoul` 시간대로 돈다 (UTC 장비에서 시간대 버그가 숨지 않게).
+  - **local에 추가한 설정은 테스트에도 상속된다.** 테스트에 맞지 않는 설정(시드 실행 등)은 `application-test.yml`에서 꺼야 한다. 그래서 테스트는 `spring.sql.init.mode: never`, `defer-datasource-initialization: false`로 Flyway만 쓴다.
 - 테스트와 종료 시 테스트 훅은 로컬 MySQL이 켜져 있어야 통과한다.
 - 로컬·테스트 JDBC URL에는 `useSSL=false&allowPublicKeyRetrieval=true`를 둔다. 없으면 MySQL 비밀번호를 바꾼 직후 `Public Key Retrieval is not allowed`로 접속이 실패하고, 앱에서는 `Unable to determine Dialect without JDBC metadata`로 보인다.
 - `gradle.properties`가 아니라 `~/.gradle/gradle.properties`(전역, 미커밋)의 `org.gradle.java.home`이 Homebrew JDK 21을 가리킨다 — 로컬 JDK가 25뿐이라 Gradle 8.10 데몬 구동용으로 별도 지정한 것.

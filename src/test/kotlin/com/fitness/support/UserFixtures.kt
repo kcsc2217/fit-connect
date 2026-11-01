@@ -1,6 +1,6 @@
 package com.fitness.support
 
-import com.fitness.user.domain.Experience
+import com.fitness.common.type.Experience
 import com.fitness.user.domain.Goal
 import com.fitness.user.domain.Sex
 import com.fitness.user.domain.SplitType

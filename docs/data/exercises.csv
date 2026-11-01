@@ -1,0 +1,66 @@
+code,name_ko,name_en,body_part,load_type,min_level,compound,default_rest_sec,source_id
+BACK_SQUAT,바벨 백 스쿼트,Barbell Squat,LEGS,BARBELL,BEGINNER,true,150,Barbell_Squat
+FRONT_SQUAT,프론트 스쿼트,Front Barbell Squat,LEGS,BARBELL,ADVANCED,true,150,Front_Barbell_Squat
+GOBLET_SQUAT,고블릿 스쿼트,Goblet Squat,LEGS,DUMBBELL,BEGINNER,true,120,Goblet_Squat
+LEG_PRESS,레그 프레스,Leg Press,LEGS,MACHINE,BEGINNER,true,120,Leg_Press
+HACK_SQUAT,핵 스쿼트,Hack Squat,LEGS,MACHINE,BEGINNER,true,120,Hack_Squat
+SMITH_SQUAT,스미스 머신 스쿼트,Smith Machine Squat,LEGS,MACHINE,BEGINNER,true,120,Smith_Machine_Squat
+BARBELL_LUNGE,바벨 런지,Barbell Lunge,LEGS,BARBELL,INTERMEDIATE,true,150,Barbell_Lunge
+DUMBBELL_LUNGE,덤벨 런지,Dumbbell Lunges,LEGS,DUMBBELL,BEGINNER,true,120,Dumbbell_Lunges
+WALKING_LUNGE,맨몸 워킹 런지,Bodyweight Walking Lunge,LEGS,BODYWEIGHT,BEGINNER,true,120,Bodyweight_Walking_Lunge
+DUMBBELL_REVERSE_LUNGE,덤벨 리버스 런지,Dumbbell Rear Lunge,LEGS,DUMBBELL,INTERMEDIATE,true,120,Dumbbell_Rear_Lunge
+DUMBBELL_STEP_UP,덤벨 스텝업,Dumbbell Step Ups,LEGS,DUMBBELL,INTERMEDIATE,true,120,Dumbbell_Step_Ups
+LEG_EXTENSION,레그 익스텐션,Leg Extensions,LEGS,MACHINE,BEGINNER,false,75,Leg_Extensions
+LYING_LEG_CURL,라잉 레그 컬,Lying Leg Curls,LEGS,MACHINE,BEGINNER,false,75,Lying_Leg_Curls
+SEATED_LEG_CURL,시티드 레그 컬,Seated Leg Curl,LEGS,MACHINE,BEGINNER,false,75,Seated_Leg_Curl
+ROMANIAN_DEADLIFT,루마니안 데드리프트,Romanian Deadlift,LEGS,BARBELL,INTERMEDIATE,true,150,Romanian_Deadlift
+DUMBBELL_STIFF_LEG_DEADLIFT,덤벨 스티프 레그 데드리프트,Stiff-Legged Dumbbell Deadlift,LEGS,DUMBBELL,BEGINNER,true,120,Stiff-Legged_Dumbbell_Deadlift
+HIP_THRUST,바벨 힙 쓰러스트,Barbell Hip Thrust,LEGS,BARBELL,INTERMEDIATE,true,150,Barbell_Hip_Thrust
+GLUTE_BRIDGE,글루트 브릿지,Butt Lift (Bridge),LEGS,BODYWEIGHT,BEGINNER,false,75,Butt_Lift_Bridge
+STANDING_CALF_RAISE,스탠딩 카프 레이즈,Standing Calf Raises,LEGS,MACHINE,BEGINNER,false,75,Standing_Calf_Raises
+SEATED_CALF_RAISE,시티드 카프 레이즈,Seated Calf Raise,LEGS,MACHINE,BEGINNER,false,75,Seated_Calf_Raise
+KETTLEBELL_SWING,원암 케틀벨 스윙,One-Arm Kettlebell Swings,LEGS,DUMBBELL,INTERMEDIATE,true,120,One-Arm_Kettlebell_Swings
+BENCH_PRESS,바벨 벤치 프레스,Barbell Bench Press - Medium Grip,CHEST,BARBELL,BEGINNER,true,150,Barbell_Bench_Press_-_Medium_Grip
+DUMBBELL_BENCH_PRESS,덤벨 벤치 프레스,Dumbbell Bench Press,CHEST,DUMBBELL,BEGINNER,true,120,Dumbbell_Bench_Press
+INCLINE_BENCH_PRESS,인클라인 바벨 벤치 프레스,Barbell Incline Bench Press - Medium Grip,CHEST,BARBELL,BEGINNER,true,150,Barbell_Incline_Bench_Press_-_Medium_Grip
+INCLINE_DUMBBELL_PRESS,인클라인 덤벨 프레스,Incline Dumbbell Press,CHEST,DUMBBELL,BEGINNER,true,120,Incline_Dumbbell_Press
+DUMBBELL_FLY,덤벨 플라이,Dumbbell Flyes,CHEST,DUMBBELL,BEGINNER,false,75,Dumbbell_Flyes
+PEC_DECK,펙 덱 플라이,Butterfly,CHEST,MACHINE,BEGINNER,false,75,Butterfly
+MACHINE_CHEST_PRESS,머신 체스트 프레스,Machine Bench Press,CHEST,MACHINE,BEGINNER,true,120,Machine_Bench_Press
+CABLE_CROSSOVER,케이블 크로스오버,Cable Crossover,CHEST,MACHINE,BEGINNER,false,75,Cable_Crossover
+PUSH_UP,푸시업,Pushups,CHEST,BODYWEIGHT,BEGINNER,true,120,Pushups
+CHEST_DIP,체스트 딥스,Dips - Chest Version,CHEST,BODYWEIGHT,INTERMEDIATE,true,120,Dips_-_Chest_Version
+LAT_PULLDOWN,랫 풀다운,Wide-Grip Lat Pulldown,BACK,MACHINE,BEGINNER,true,120,Wide-Grip_Lat_Pulldown
+PULL_UP,풀업,Pullups,BACK,BODYWEIGHT,BEGINNER,true,120,Pullups
+CHIN_UP,친업,Chin-Up,BACK,BODYWEIGHT,BEGINNER,true,120,Chin-Up
+BARBELL_ROW,바벨 벤트오버 로우,Bent Over Barbell Row,BACK,BARBELL,BEGINNER,true,150,Bent_Over_Barbell_Row
+ONE_ARM_DUMBBELL_ROW,원암 덤벨 로우,One-Arm Dumbbell Row,BACK,DUMBBELL,BEGINNER,true,120,One-Arm_Dumbbell_Row
+SEATED_CABLE_ROW,시티드 케이블 로우,Seated Cable Rows,BACK,MACHINE,BEGINNER,true,120,Seated_Cable_Rows
+T_BAR_ROW,티바 로우,Lying T-Bar Row,BACK,MACHINE,INTERMEDIATE,true,120,Lying_T-Bar_Row
+DEADLIFT,바벨 데드리프트,Barbell Deadlift,BACK,BARBELL,INTERMEDIATE,true,150,Barbell_Deadlift
+BACK_EXTENSION,백 익스텐션,Hyperextensions (Back Extensions),BACK,MACHINE,BEGINNER,false,75,Hyperextensions_Back_Extensions
+BARBELL_SHRUG,바벨 슈러그,Barbell Shrug,BACK,BARBELL,BEGINNER,false,75,Barbell_Shrug
+OVERHEAD_PRESS,스탠딩 오버헤드 프레스,Standing Military Press,SHOULDER,BARBELL,BEGINNER,true,150,Standing_Military_Press
+SEATED_DUMBBELL_PRESS,시티드 덤벨 숄더 프레스,Seated Dumbbell Press,SHOULDER,DUMBBELL,BEGINNER,true,120,Seated_Dumbbell_Press
+ARNOLD_PRESS,아놀드 프레스,Arnold Dumbbell Press,SHOULDER,DUMBBELL,INTERMEDIATE,true,120,Arnold_Dumbbell_Press
+MACHINE_SHOULDER_PRESS,머신 숄더 프레스,Machine Shoulder (Military) Press,SHOULDER,MACHINE,BEGINNER,true,120,Machine_Shoulder_Military_Press
+LATERAL_RAISE,사이드 레터럴 레이즈,Side Lateral Raise,SHOULDER,DUMBBELL,BEGINNER,false,75,Side_Lateral_Raise
+CABLE_LATERAL_RAISE,케이블 레터럴 레이즈,Cable Seated Lateral Raise,SHOULDER,MACHINE,BEGINNER,false,75,Cable_Seated_Lateral_Raise
+FRONT_RAISE,덤벨 프론트 레이즈,Front Dumbbell Raise,SHOULDER,DUMBBELL,BEGINNER,false,75,Front_Dumbbell_Raise
+REVERSE_FLY,리버스 플라이,Reverse Flyes,SHOULDER,DUMBBELL,BEGINNER,false,75,Reverse_Flyes
+FACE_PULL,페이스 풀,Face Pull,SHOULDER,MACHINE,INTERMEDIATE,true,120,Face_Pull
+BARBELL_CURL,바벨 컬,Barbell Curl,ARMS,BARBELL,BEGINNER,false,75,Barbell_Curl
+DUMBBELL_CURL,덤벨 컬,Dumbbell Bicep Curl,ARMS,DUMBBELL,BEGINNER,false,75,Dumbbell_Bicep_Curl
+HAMMER_CURL,해머 컬,Hammer Curls,ARMS,DUMBBELL,BEGINNER,false,75,Hammer_Curls
+PREACHER_CURL,프리처 컬,Preacher Curl,ARMS,BARBELL,BEGINNER,false,75,Preacher_Curl
+TRICEPS_PUSHDOWN,트라이셉스 푸시다운,Triceps Pushdown,ARMS,MACHINE,BEGINNER,false,75,Triceps_Pushdown
+LYING_TRICEPS_EXTENSION,라잉 트라이셉스 익스텐션,Lying Triceps Press,ARMS,BARBELL,INTERMEDIATE,false,75,Lying_Triceps_Press
+OVERHEAD_TRICEPS_EXTENSION,덤벨 오버헤드 트라이셉스 익스텐션,Standing Dumbbell Triceps Extension,ARMS,DUMBBELL,BEGINNER,false,75,Standing_Dumbbell_Triceps_Extension
+CLOSE_GRIP_BENCH_PRESS,클로즈 그립 벤치 프레스,Close-Grip Barbell Bench Press,ARMS,BARBELL,BEGINNER,true,150,Close-Grip_Barbell_Bench_Press
+TRICEPS_DIP,트라이셉스 딥스,Dips - Triceps Version,ARMS,BODYWEIGHT,BEGINNER,true,120,Dips_-_Triceps_Version
+BENCH_DIP,벤치 딥스,Bench Dips,ARMS,BODYWEIGHT,BEGINNER,true,120,Bench_Dips
+PLANK,플랭크,Plank,CORE,BODYWEIGHT,BEGINNER,false,60,Plank
+CRUNCH,크런치,Crunches,CORE,BODYWEIGHT,BEGINNER,false,60,Crunches
+CABLE_CRUNCH,케이블 크런치,Cable Crunch,CORE,MACHINE,BEGINNER,false,60,Cable_Crunch
+HANGING_LEG_RAISE,행잉 레그 레이즈,Hanging Leg Raise,CORE,BODYWEIGHT,ADVANCED,false,60,Hanging_Leg_Raise
+RUSSIAN_TWIST,러시안 트위스트,Russian Twist,CORE,BODYWEIGHT,INTERMEDIATE,true,60,Russian_Twist

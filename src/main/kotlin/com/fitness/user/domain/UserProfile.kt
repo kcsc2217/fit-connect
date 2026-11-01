@@ -1,6 +1,7 @@
 package com.fitness.user.domain
 
 import com.fitness.common.entity.BaseTimeEntity
+import com.fitness.common.type.Experience
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType

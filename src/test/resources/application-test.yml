@@ -4,8 +4,12 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/fitness_test?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8
   jpa:
+    defer-datasource-initialization: false   # local의 시드 설정을 끈다 (Flyway와 함께 쓰면 순환 의존)
     hibernate:
       ddl-auto: validate
+  sql:
+    init:
+      mode: never   # 초기 종목은 Flyway V3가 넣는다 (local의 시드 실행이 상속되면 중복 삽입)
   flyway:
     enabled: true
     clean-disabled: false   # 테스트 시작마다 clean → migrate (TestFlywayConfig)

@@ -7,6 +7,8 @@ enum class Equipment {
     MACHINE,
     CABLE,
     BENCH,
+    RACK,
+    DIP_BAR,
     PULLUP_BAR,
     KETTLEBELL,
     BODYWEIGHT,
