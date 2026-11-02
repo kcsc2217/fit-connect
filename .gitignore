@@ -46,3 +46,4 @@ application-local.yml
 ### Claude Code ###
 .claude/settings.local.json
 .claude/hooks/caught.log
+.claude/hooks/timing.log

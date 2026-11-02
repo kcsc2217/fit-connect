@@ -54,6 +54,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Kotlin 파일 수정 직후: ktlint 포맷(설치 시) + `compileKotlin compileTestKotlin`. 실패하면 에러가 돌아오니 바로 고친다.
 - 작업 종료 시: 코드 변경이 있으면 `./gradlew test`. 실패하면 최대 3번까지 스스로 고친다.
 - 훅이 잡은 오류는 `.claude/hooks/caught.log`에 쌓인다 (`docs/ai-log.md` 기록용).
+- 턴 시작·끝 시각은 `.claude/hooks/timing.log`에 쌓인다 (UserPromptSubmit·Stop 훅). ai-log의 "Claude 작업 시간" 계산용.
 
 ## 패키지 구조
 
