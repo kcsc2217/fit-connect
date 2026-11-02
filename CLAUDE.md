@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 내 신체 정보와 운동 기록을 아는 AI 트레이너가 매일 오늘의 운동·식단을 짜서 알려주는 앱의 백엔드. 요구사항은 `docs/prd.md`(v2), DB는 `docs/db-schema.md`가 기준이다.
 
-> **진행 중:** 엔티티 재구성(`docs/plans/001-entity-rebuild-user.md`부터)으로 user, workout 모듈까지 만들었다. routine·notification·llm, challenge·공통 모듈은 다음 계획(003~004)에서 만든다.
+> **진행 중:** 엔티티 재구성(`docs/plans/001-entity-rebuild-user.md`부터)으로 user, workout 모듈과 routine·notification·llm 엔티티(003)까지 만들었다. challenge·공통 모듈은 다음 계획(004)에서 만든다.
 
 ## 아키텍처 원칙
 - 숫자(무게·세트·반복 수·칼로리)는 서버 규칙이 계산한다. LLM은 종목 구성·순서·문구만 만든다.
@@ -70,9 +70,9 @@ com.fitness
 │   └── response/        # 공통 API 응답 포맷
 ├── user/                # 소셜 로그인, JWT, 온보딩 프로필, 장비, 기기 토큰   ← 구현됨
 ├── workout/             # 종목 사전, 세션·세트 기록, 오프라인 동기화, PR·주간 볼륨   ← 엔티티·후보 종목 조회 구현됨
-├── routine/             # 오늘의 운동 생성 (서버 규칙 + LLM), 기본 루틴 대체
-├── notification/        # 알림 예약, FCM 푸시, 발송 기록
-├── llm/                 # LLM 클라이언트, 프롬프트 버전, 호출 로그, 재시도·대체
+├── routine/             # 오늘의 운동 생성 (서버 규칙 + LLM), 기본 루틴 대체   ← 엔티티 구현됨
+├── notification/        # 알림 예약, FCM 푸시, 발송 기록   ← 엔티티 구현됨
+├── llm/                 # LLM 클라이언트, 프롬프트 버전, 호출 로그, 재시도·대체   ← 엔티티 구현됨
 └── challenge/           # 챌린지 선착순 신청 (동시성 실험)
 ```
 

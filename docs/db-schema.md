@@ -487,13 +487,14 @@ WHERE e.active = TRUE
 | id | BIGINT | PK | |
 | user_id | BIGINT | NOT NULL | |
 | type | VARCHAR(30) | NOT NULL | DAILY_ROUTINE, CHALLENGE_PROMOTED 등 |
-| ref_id | BIGINT | NULL | 대상 루틴·챌린지 id |
+| ref_id | BIGINT | NOT NULL | 종류별 대상 id (DAILY_ROUTINE → 루틴, CHALLENGE_PROMOTED → 챌린지) |
 | scheduled_at | DATETIME(6) | NOT NULL | 발송 예정 시각 |
 | sent_at | DATETIME(6) | NULL | |
 | result | VARCHAR(20) | NOT NULL | PENDING, SENT, FAILED, TOKEN_EXPIRED |
 | opened_at | DATETIME(6) | NULL | 알림을 눌러 앱을 연 시각 (알림 열람률 지표) |
 
 - 유니크: `(user_id, type, ref_id)` — 같은 루틴에 알림이 두 번 가지 않게
+- ref_id를 NOT NULL로 둔 이유: MySQL 유니크는 NULL끼리 같은 값으로 보지 않아, NULL이면 중복을 막지 못한다. 대상 없는 알림 종류가 생기면 새 버전으로 설계한다
 - 인덱스: `(result, scheduled_at)` — 발송 대상 조회
 
 ### 3.5 llm 모듈
