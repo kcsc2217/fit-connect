@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 내 신체 정보와 운동 기록을 아는 AI 트레이너가 매일 오늘의 운동·식단을 짜서 알려주는 앱의 백엔드. 요구사항은 `docs/prd.md`(v2), DB는 `docs/db-schema.md`가 기준이다.
 
-> **진행 중:** 엔티티 재구성(`docs/plans/001-entity-rebuild-user.md`부터)으로 user, workout 모듈과 routine·notification·llm 엔티티(003)까지 만들었다. challenge·공통 모듈은 다음 계획(004)에서 만든다.
+> **진행 상황:** 엔티티 재구성(`docs/plans/001`~`004`)으로 모든 모듈(user, workout, routine, notification, llm, challenge, analytics)의 엔티티와 마이그레이션(V1~V5)을 만들었다. 다음은 기능(API) 구현이다.
 
 ## 아키텍처 원칙
 - 숫자(무게·세트·반복 수·칼로리)는 서버 규칙이 계산한다. LLM은 종목 구성·순서·문구만 만든다.
@@ -74,7 +74,8 @@ com.fitness
 ├── routine/             # 오늘의 운동 생성 (서버 규칙 + LLM), 기본 루틴 대체   ← 엔티티 구현됨
 ├── notification/        # 알림 예약, FCM 푸시, 발송 기록   ← 엔티티 구현됨
 ├── llm/                 # LLM 클라이언트, 프롬프트 버전, 호출 로그, 재시도·대체   ← 엔티티 구현됨
-└── challenge/           # 챌린지 선착순 신청 (동시성 실험)
+├── challenge/           # 챌린지 선착순 신청 (동시성 실험)   ← 엔티티 구현됨
+└── analytics/           # 제품 지표 이벤트 기록 (event_log)   ← 엔티티 구현됨
 ```
 
 각 모듈 안: `controller/`, `service/`, `domain/`(엔티티·enum), `repository/`, `dto/`. 외부 API 클라이언트는 `client/`.
@@ -98,6 +99,7 @@ com.fitness
 - 복합 키는 `@IdClass`가 아니라 `@Embeddable` + `@EmbeddedId` (kotlin-jpa 플러그인이 기본 생성자를 만들어 주도록).
   - ID를 직접 정하는 엔티티를 새 객체로 `save()`하면 merge되고, 반환된 객체의 `createdAt`은 null이다. 응답에 쓸 때는 다시 조회한다.
 - 로컬 `create`에서는 FK가 생기지 않는다 (엔티티에 연관관계가 없어서). FK 위반은 저장소 테스트로 확인한다.
+- `shedlock`은 ShedLock 라이브러리가 쓰는 테이블이라 엔티티가 없다. 그래서 로컬 `create`에서는 생기지 않는다 (ShedLock 도입 시 로컬 생성 방법을 정한다). 형식은 `ShedlockTableTest`가 확인한다.
 - 앱이 만든 UUID(`client_id`)는 Kotlin `UUID` → `BINARY(16)`. 별도 설정 없이 매핑된다.
 - 초기 종목 사전은 `docs/data/*.csv`(free-exercise-db에서 고른 종목)가 원본이다. 바꿀 때는 CSV를 고치고 `python3 scripts/generate_exercise_seed.py`로 `V3__seed_exercises.sql`을 다시 만든다 (운영 적용 후에는 새 버전으로 추가). 로컬은 `application-local.yml`의 `spring.sql.init`이 같은 V3 파일을 실행한다. 운영 배포 후 종목을 V4 이후로 추가하면 `spring.sql.init.data-locations`에도 그 파일을 추가해야 로컬에 반영된다. `ExerciseSeedTest`가 DB 내용을 CSV와 통째로 비교한다.
 - 맨몸 종목은 `exercise_equipment` 행이 없다 (장비와 관계없이 항상 후보). 종목 조회는 다른 모듈에서 `ExerciseService`를 통해서만 한다.

@@ -32,7 +32,8 @@
 | notification | push_log |
 | llm | llm_call_log |
 | challenge | challenge, challenge_participation |
-| 공통 | shedlock, event_log |
+| analytics | event_log |
+| 공통 | shedlock |
 
 > exercise(종목 사전)는 workout 모듈이 소유하고, routine 모듈은 공개 인터페이스로 조회한다.
 
@@ -564,7 +565,9 @@ WHERE e.active = TRUE
 
 인증·완주·배지·포인트 테이블(challenge_check_in, badge, user_badge, point_ledger)은 3차에 추가.
 
-### 3.7 공통
+### 3.7 공통·analytics
+
+shedlock은 공통(엔티티 없음, ShedLock 라이브러리가 직접 사용), event_log는 analytics 모듈이 소유한다.
 
 #### shedlock
 
@@ -577,7 +580,7 @@ ShedLock 라이브러리가 정한 형식을 그대로 사용.
 | locked_at | TIMESTAMP(3) | NOT NULL |
 | locked_by | VARCHAR(255) | NOT NULL |
 
-#### event_log
+#### event_log (analytics 모듈)
 
 제품 지표용 이벤트 기록.
 
