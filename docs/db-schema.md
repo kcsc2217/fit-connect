@@ -616,6 +616,8 @@ ShedLock 라이브러리가 정한 형식을 그대로 사용.
 | 3차 | challenge_check_in, badge, user_badge |
 | 확장 | point_ledger, challenge_proof, pose_analysis, proof_report |
 
+- **2차 컬럼 추가 예정 (PRD FR-26 사용자 종목 추가):** `exercise.owner_user_id BIGINT NULL` + 인덱스. NULL이면 공용 종목, 값이 있으면 그 사용자 전용. 별도 테이블 대신 같은 테이블에 두어 `workout_set`·`personal_record`·`routine_item`의 `exercise_id` 참조를 그대로 쓴다. 후보 조회에 `owner_user_id IS NULL OR owner_user_id = :userId` 조건 추가. 사용자 종목의 `code`는 서버가 생성한다(예: `U{userId}_{순번}`).
+
 ---
 
 ## 6. 열린 질문
