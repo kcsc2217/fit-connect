@@ -47,3 +47,6 @@ application-local.yml
 .claude/settings.local.json
 .claude/hooks/caught.log
 .claude/hooks/timing.log
+
+# 개인 Claude 지시 파일
+CLAUDE.local.md
