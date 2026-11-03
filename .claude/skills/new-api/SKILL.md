@@ -25,9 +25,10 @@ description: 작업 절차 4단계. 승인된 계획(docs/plans)에 따라 API �
 | dto | `<Name>Request.kt`, `<Name>Response.kt` | `data class`. 검증은 `jakarta.validation` 어노테이션(`@field:NotNull` 등). 응답은 `companion object { fun from(entity) }`로 변환 |
 | domain | 엔티티 | 기존 엔티티 재사용. `BaseTimeEntity` 상속. API 응답으로 직접 반환 금지 |
 | repository | `<Name>Repository.kt` | Spring Data JPA. 복잡한 조회는 QueryDSL |
-| test | `src/test/kotlin/...` | 통합: `@SpringBootTest` + `@AutoConfigureMockMvc` + `MockMvc`. 단위: Mockk. Given-When-Then |
+| test | `src/test/kotlin/...` | 통합: `@IntegrationTest`(`@SpringBootTest` + `@AutoConfigureMockMvc` 묶음) + `MockMvc`. 단위: Mockk. Given-When-Then |
 
-- 공통 응답 포맷·예외 처리는 `common/response`, `common/exception`에 있으면 사용하고, 없으면 처음 필요할 때 만든다 (계획에 포함됐을 때만).
+- 성공 응답은 DTO를 그대로 반환한다(봉투 없음). 에러는 `BusinessException(ErrorCode)`를 던지면 `common/exception/GlobalExceptionHandler`가 ProblemDetail + code로 바꾼다. 새 에러 코드는 `ErrorCode`에 추가한다 (ADR 0003).
+- 통합 테스트는 `@IntegrationTest`(`support/`)를 붙인다. 에러 응답은 `jsonPath("$.code")`로 확인한다.
 - 외부 협력자(LLM, FCM, OAuth 클라이언트)는 통합 테스트에서 `@MockkBean`으로 대체한다.
 
 ## 절차

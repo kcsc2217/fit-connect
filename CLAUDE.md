@@ -14,6 +14,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 멱등성이 필요한 쓰기는 `(user_id, client_id)` 유니크 제약 + upsert로 처리한다.
 - 동시성이 필요한 쓰기(챌린지 정원 등)는 `docs/decisions/`의 결정을 따른다. Redis 원자 연산 + DB 유니크 제약을 최후 안전망으로 둔다.
 - 서버 메모리에 상태를 두지 않는다 (여러 대로 늘려도 동작해야 한다).
+- 성공 응답은 DTO를 감싸지 않고 그대로 반환한다. 에러는 ProblemDetail + `code`로 응답한다 (`docs/decisions/0003-error-response-format.md`). 우리 코드는 `BusinessException(ErrorCode)`를 던지고, 새 에러 코드는 기능을 만들 때 `ErrorCode`에 추가한다.
 
 ## 작업 절차
 모든 작업은 `docs/workflow.md`의 절차(명세 → 계획 → 테스트 먼저 → 구현 → 리뷰 → 성능 확인 → 기록)를 따른다. 각 단계에는 `.claude/skills/`의 스킬이 있다.
@@ -67,8 +68,7 @@ com.fitness
 ├── common/              # 모듈에 속하지 않는 공통 코드
 │   ├── entity/          # BaseTimeEntity
 │   ├── type/            # 여러 모듈이 같이 쓰는 값 (Equipment 등)
-│   ├── exception/       # GlobalExceptionHandler, 커스텀 예외, 에러 코드
-│   └── response/        # 공통 API 응답 포맷
+│   └── exception/       # GlobalExceptionHandler, BusinessException, ErrorCode (에러 응답 형식은 ADR 0003)
 ├── user/                # 소셜 로그인, JWT, 온보딩 프로필, 장비, 기기 토큰   ← 구현됨
 ├── workout/             # 종목 사전, 세션·세트 기록, 오프라인 동기화, PR·주간 볼륨   ← 엔티티·후보 종목 조회 구현됨
 ├── routine/             # 오늘의 운동 생성 (서버 규칙 + LLM), 기본 루틴 대체   ← 엔티티 구현됨
@@ -117,6 +117,7 @@ com.fitness
 - 하나의 테스트는 하나의 시나리오만 검증한다 (then에서 서로 다른 관심사를 여러 개 assert하지 않는다).
 - Mock은 Mockk(`mockk()`, `every`, `verify`)를 사용하고, `spring-boot-starter-test`의 Mockito는 쓰지 않는다.
 - 저장소·제약 테스트는 `@RepositoryTest`(`src/test/kotlin/com/fitness/support/`)를 붙인다. 로컬 MySQL의 `fitness_test`에 Flyway를 적용해 실제 제약으로 검증하고, 테스트마다 롤백된다. 픽스처는 `support/UserFixtures` 같은 객체에 둔다.
+- API 테스트는 `@IntegrationTest`(`support/`)를 붙인다. 앱 전체를 띄워 MockMvc(Kotlin DSL `mockMvc.get {}`)로 요청하고, DB 설정은 `@RepositoryTest`와 같다.
 
 ```kotlin
 @Test
@@ -144,6 +145,6 @@ fun `같은 FCM 토큰을 두 번 저장하면 유니크 제약 위반 예외가
   - `src/test/resources/application-test.yml`(커밋): `fitness_test` DB(없으면 자동 생성), Flyway + validate. 테스트는 `local,test` 프로파일로 떠서 계정은 local 설정을 그대로 쓴다. DB 이름이 `_test`로 끝나지 않으면 clean 전에 멈춘다.
   - 테스트 JVM은 항상 `Asia/Seoul` 시간대로 돈다 (UTC 장비에서 시간대 버그가 숨지 않게).
   - **local에 추가한 설정은 테스트에도 상속된다.** 테스트에 맞지 않는 설정(시드 실행 등)은 `application-test.yml`에서 꺼야 한다. 그래서 테스트는 `spring.sql.init.mode: never`, `defer-datasource-initialization: false`로 Flyway만 쓴다.
-- 테스트와 종료 시 테스트 훅은 로컬 MySQL이 켜져 있어야 통과한다.
+- 테스트와 종료 시 테스트 훅은 로컬 MySQL이 켜져 있어야 통과한다. `@IntegrationTest`는 Redisson이 시작할 때 Redis에 연결하므로 로컬 Redis도 켜져 있어야 한다.
 - 로컬·테스트 JDBC URL에는 `useSSL=false&allowPublicKeyRetrieval=true`를 둔다. 없으면 MySQL 비밀번호를 바꾼 직후 `Public Key Retrieval is not allowed`로 접속이 실패하고, 앱에서는 `Unable to determine Dialect without JDBC metadata`로 보인다.
 - `gradle.properties`가 아니라 `~/.gradle/gradle.properties`(전역, 미커밋)의 `org.gradle.java.home`이 Homebrew JDK 21을 가리킨다 — 로컬 JDK가 25뿐이라 Gradle 8.10 데몬 구동용으로 별도 지정한 것.

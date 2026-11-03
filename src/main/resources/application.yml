@@ -23,3 +23,8 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+  jackson:
+    deserialization:
+      # 요청 JSON에서 원시 타입(Int, Boolean 등) 필드가 빠지거나 null이면 0·false로 채우지 않고 실패시킨다.
+      # 끄면 reps가 빠진 세트가 0회로 저장된다 (GlobalExceptionHandler가 INVALID_INPUT으로 응답).
+      fail-on-null-for-primitives: true
