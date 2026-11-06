@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 내 신체 정보와 운동 기록을 아는 AI 트레이너가 매일 오늘의 운동·식단을 짜서 알려주는 앱의 백엔드. 요구사항은 `docs/prd.md`(v2), DB는 `docs/db-schema.md`가 기준이다.
 
-> **진행 상황:** 엔티티 재구성(`docs/plans/001`~`004`)으로 모든 모듈(user, workout, routine, notification, llm, challenge, analytics)의 엔티티와 마이그레이션(V1~V5)을 만들었다. 다음은 기능(API) 구현이다.
+> **진행 상황:** 엔티티 재구성(`docs/plans/001`~`004`)으로 모든 모듈(user, workout, routine, notification, llm, challenge, analytics)의 엔티티와 마이그레이션(V1~V5)을 만들었다. 공통 에러 응답(005)과 인증 1-A(006: JWT 발급·갱신·로그아웃, 내 정보 조회)까지 구현했다. 다음은 인증 1-B(카카오·구글 OIDC)와 온보딩이다.
 
 ## 아키텍처 원칙
 - 숫자(무게·세트·반복 수·칼로리)는 서버 규칙이 계산한다. LLM은 종목 구성·순서·문구만 만든다.
@@ -69,7 +69,7 @@ com.fitness
 │   ├── entity/          # BaseTimeEntity
 │   ├── type/            # 여러 모듈이 같이 쓰는 값 (Equipment 등)
 │   └── exception/       # GlobalExceptionHandler, BusinessException, ErrorCode (에러 응답 형식은 ADR 0003)
-├── user/                # 소셜 로그인, JWT, 온보딩 프로필, 장비, 기기 토큰   ← 구현됨
+├── user/                # 소셜 로그인, JWT, 온보딩 프로필, 장비, 기기 토큰   ← 인증 1-A 구현됨 (security/, client/)
 ├── workout/             # 종목 사전, 세션·세트 기록, 오프라인 동기화, PR·주간 볼륨   ← 엔티티·후보 종목 조회 구현됨
 ├── routine/             # 오늘의 운동 생성 (서버 규칙 + LLM), 기본 루틴 대체   ← 엔티티 구현됨
 ├── notification/        # 알림 예약, FCM 푸시, 발송 기록   ← 엔티티 구현됨
@@ -118,6 +118,8 @@ com.fitness
 - Mock은 Mockk(`mockk()`, `every`, `verify`)를 사용하고, `spring-boot-starter-test`의 Mockito는 쓰지 않는다.
 - 저장소·제약 테스트는 `@RepositoryTest`(`src/test/kotlin/com/fitness/support/`)를 붙인다. 로컬 MySQL의 `fitness_test`에 Flyway를 적용해 실제 제약으로 검증하고, 테스트마다 롤백된다. 픽스처는 `support/UserFixtures` 같은 객체에 둔다.
 - API 테스트는 `@IntegrationTest`(`support/`)를 붙인다. 앱 전체를 띄워 MockMvc(Kotlin DSL `mockMvc.get {}`)로 요청하고, DB 설정은 `@RepositoryTest`와 같다.
+  - **롤백하지 않는다** (동시성 테스트와 실제 커밋 동작을 확인하기 위해). 대신 테스트마다 고유한 값(`AuthTestSupport.uniqueDevId()` 등)으로 데이터를 만들어 서로 영향을 주지 않게 한다.
+  - 인증이 필요한 API는 `mockMvc.loginAsDev(objectMapper)`로 받은 access를 `Authorization: Bearer` 헤더에 넣는다 (`support/AuthTestSupport`).
 
 ```kotlin
 @Test
@@ -135,6 +137,14 @@ fun `같은 FCM 토큰을 두 번 저장하면 유니크 제약 위반 예외가
 
 ## Git 커밋 규칙
 - 커밋 메시지는 **한글로 작성**한다.
+
+## 인증 (ADR 0004, 계획 006)
+- 모든 경로는 기본이 "인증 필요"다. 공개 경로는 `user/security/SecurityConfig`의 `PUBLIC_PATHS`에만 추가한다. 인증 없이 없는 경로를 부르면 404가 아니라 401이다.
+- 컨트롤러는 `@AuthenticationPrincipal userId: Long`으로 사용자를 받고, 서비스에는 `Long`만 넘긴다 (Spring Security 타입을 서비스로 넘기지 않는다).
+- 401·403은 필터 단계에서 나므로 `GlobalExceptionHandler`를 거치지 않는다. 같은 형식은 `common.exception.problemDetail()`과 `ProblemDetailWriter`가 맞춘다.
+- 서명 키: 운영은 환경변수 `JWT_SECRET`(Base64, 디코드 후 32바이트 이상). 비어 있으면 앱이 시작하지 않는다. 로컬은 미커밋 `application-local.yml`의 `fitness.jwt.secret`.
+- 개발용 로그인(`provider: DEV`, token 값이 곧 소셜 ID)은 `fitness.auth.dev-login.enabled=true`일 때만 켜진다. 이 설정은 `application-local.yml`과 `application-test.yml`에만 둔다. 프로파일 조건으로 바꾸지 않는다 (기본 활성 프로파일이 local이라 운영에서 열릴 수 있다).
+- KDoc·주석 안에 `/**` 같은 경로 글롭을 쓰면 Kotlin은 주석이 중첩된 것으로 보고 컴파일에 실패한다. 주석에서는 글롭을 풀어 쓴다.
 
 ## 로컬 실행 환경
 - 인프라: MySQL, Redis — 둘 다 로컬에 직접 설치되어 있음 (Docker 미사용). 접속 정보(계정/비밀번호)는 `application-local.yml`(gitignore 대상, 커밋 금지)에 각자 설정.

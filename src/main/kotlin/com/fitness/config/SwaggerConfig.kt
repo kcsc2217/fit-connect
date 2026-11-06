@@ -1,7 +1,9 @@
 package com.fitness.config
 
+import io.swagger.v3.oas.models.Components
 import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.oas.models.info.Info
+import io.swagger.v3.oas.models.security.SecurityScheme
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
@@ -16,5 +18,12 @@ class SwaggerConfig {
                     .title("나만의 트레이너 쌤 API")
                     .description("기록을 아는 AI 트레이너가 오늘의 운동과 식단을 짜 주는 앱의 백엔드")
                     .version("v0.0.1")
+            )
+            // Authorize 버튼에 access 토큰을 넣어 인증이 필요한 API를 호출한다
+            .components(
+                Components().addSecuritySchemes(
+                    "bearer",
+                    SecurityScheme().type(SecurityScheme.Type.HTTP).scheme("bearer").bearerFormat("JWT"),
+                )
             )
 }

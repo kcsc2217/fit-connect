@@ -6,4 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository
 
 interface SocialAccountRepository : JpaRepository<SocialAccount, Long> {
     fun findByProviderAndProviderUserId(provider: AuthProvider, providerUserId: String): SocialAccount?
+
+    fun findAllByUserId(userId: Long): List<SocialAccount>
 }

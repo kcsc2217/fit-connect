@@ -1,11 +1,13 @@
 package com.fitness.common.exception
 
 import com.fitness.support.IntegrationTest
+import com.fitness.user.security.JwtProvider
 import org.hamcrest.Matchers.containsInAnyOrder
 import org.hamcrest.Matchers.containsString
 import org.hamcrest.Matchers.not
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.delete
@@ -15,6 +17,7 @@ import org.springframework.test.web.servlet.post
 @IntegrationTest
 class GlobalExceptionHandlerTest @Autowired constructor(
     private val mockMvc: MockMvc,
+    private val jwtProvider: JwtProvider,
 ) {
 
     @Test
@@ -107,12 +110,15 @@ class GlobalExceptionHandlerTest @Autowired constructor(
     }
 
     @Test
-    fun `없는 경로를 호출하면 404 NOT_FOUND로 응답한다`() {
-        // given
+    fun `인증된 요청으로 없는 경로를 호출하면 404 NOT_FOUND로 응답한다`() {
+        // given: 인증이 없으면 401이 먼저 난다 (계획 006). 필터는 회원을 조회하지 않아 아무 userId로 충분하다
         val path = "/api/v1/nothing"
+        val accessToken = jwtProvider.issueAccessToken(1L).value
 
         // when
-        val result = mockMvc.get(path)
+        val result = mockMvc.get(path) {
+            header(HttpHeaders.AUTHORIZATION, "Bearer $accessToken")
+        }
 
         // then
         result.andExpect {

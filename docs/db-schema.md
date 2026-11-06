@@ -270,7 +270,7 @@ erDiagram
 | --- | --- | --- | --- |
 | id | BIGINT | PK | |
 | user_id | BIGINT | NOT NULL, FK → users.id | |
-| provider | VARCHAR(20) | NOT NULL | KAKAO, GOOGLE, APPLE |
+| provider | VARCHAR(20) | NOT NULL | KAKAO, GOOGLE, APPLE, DEV (개발·테스트 전용 로그인, 계획 006. 운영 설정에서는 쓰이지 않는다) |
 | provider_user_id | VARCHAR(100) | NOT NULL | 소셜 서비스의 사용자 식별자 |
 | email | VARCHAR(255) | NULL | 제공되지 않을 수 있음 |
 

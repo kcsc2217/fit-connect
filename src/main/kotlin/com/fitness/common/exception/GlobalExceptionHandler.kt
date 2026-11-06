@@ -119,11 +119,7 @@ class GlobalExceptionHandler : ResponseEntityExceptionHandler() {
     }
 
     private fun problem(code: ErrorCode, detail: String?, path: String): ProblemDetail =
-        ProblemDetail.forStatusAndDetail(code.status, detail ?: code.title).apply {
-            title = code.title
-            instance = URI.create(path)
-            setProperty("code", code.name)
-        }
+        problemDetail(code, detail, path)
 
     private fun invalidInput(errors: List<FieldErrorDetail>, path: String): ProblemDetail =
         problem(ErrorCode.INVALID_INPUT, ErrorCode.INVALID_INPUT.title, path).apply {

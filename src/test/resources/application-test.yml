@@ -13,3 +13,13 @@ spring:
   flyway:
     enabled: true
     clean-disabled: false   # 테스트 시작마다 clean → migrate (TestFlywayConfig)
+
+fitness:
+  jwt:
+    # 테스트 전용 서명 키. 운영·로컬 키와 무관하고 테스트 밖에서는 쓰이지 않는다
+    secret: rE3TJD05Nygql1g11IdoNuh6kn7r4hBNU55YHQOj1aoyI81+TgcqOIInL5Vc3E4v
+  auth:
+    dev-login:
+      enabled: true   # 개발용 로그인(DEV)으로 테스트 회원을 만든다
+  security:
+    extra-public-paths: /test-support/**   # 테스트 전용 컨트롤러는 인증 없이 호출
