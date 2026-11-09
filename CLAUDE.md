@@ -29,6 +29,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 테스트 없이 작업을 완료 처리하지 않는다. 모든 API는 통합 테스트를 가진다.
 - LLM 응답을 검증 없이 저장하거나 사용자에게 보여주지 않는다.
 - 비밀값(API 키, DB 비밀번호)을 코드나 커밋되는 파일에 넣지 않는다.
+- `main`에 직접 커밋하지 않는다. 작업마다 브랜치를 만들고 PR + CI 통과 후 머지한다 (`docs/workflow.md` "브랜치와 머지").
 
 ## 기술 스택
 - Kotlin 1.9.25 / JDK 21 / Spring Boot 3.3.3 / Gradle Kotlin DSL
@@ -61,7 +62,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - GitHub Actions. `main`에 push할 때와 PR마다 `./gradlew test`를 돌린다. 같은 브랜치에 새 커밋이 오면 이전 실행은 취소된다.
 - MySQL 8.4·Redis 7은 서비스 컨테이너로 띄운다. DB 계정은 `application-local.yml`이 없어 환경변수(`SPRING_DATASOURCE_USERNAME`·`PASSWORD`)로 넣는다. 일회용 컨테이너 값이라 비밀값이 아니다. DB 주소는 `application-test.yml`의 `fitness_test` 그대로다.
 - **테스트에 필요한 설정을 `application-local.yml`에만 넣으면 CI에서 깨진다.** 테스트가 쓰는 값은 `application-test.yml`에 둔다 (local 설정은 CI에 없다).
-- 실패하면 Actions 실행 화면의 `test-report` 아티팩트(HTML)에서 깨진 테스트를 본다.
+- 실패하면 Actions 실행 화면의 `test-report` 아티팩트(HTML)에서 깨진 테스트를 본다. 로그와 아티팩트는 GitHub 로그인이 있어야 보인다.
+- `main` 보호 규칙의 필수 체크가 이 워크플로의 `test` 작업이다. 작업 이름을 바꾸면 보호 규칙의 체크도 함께 바꿔야 한다 (안 그러면 머지가 영원히 막힌다).
 
 ## 패키지 구조
 
@@ -144,6 +146,9 @@ fun `같은 FCM 토큰을 두 번 저장하면 유니크 제약 위반 예외가
 
 ## Git 커밋 규칙
 - 커밋 메시지는 **한글로 작성**한다.
+- 작업을 시작할 때 `main`을 최신으로 맞추고 `<종류>/<작업>` 브랜치(`feat/`, `fix/`, `docs/`, `ci/`, `chore/`)를 만든다. 구현·리뷰 반영·ai-log 커밋을 모두 그 브랜치에 한다.
+- push와 PR 생성은 사용자가 한다 (이 세션에는 GitHub 인증이 없다). Claude는 커밋까지 하고 PR 링크(`https://github.com/kcsc2217/fit-connect/compare/main...<브랜치>`)를 안내한다.
+- `main`은 보호 규칙으로 PR + CI `test` 통과(최신 `main` 기준)가 있어야 머지된다. 머지는 Squash and merge.
 
 ## 인증 (ADR 0004·0005, 계획 006·007)
 - 모든 경로는 기본이 "인증 필요"다. 공개 경로는 `user/security/SecurityConfig`의 `PUBLIC_PATHS`에만 추가한다. 인증 없이 없는 경로를 부르면 404가 아니라 401이다.
