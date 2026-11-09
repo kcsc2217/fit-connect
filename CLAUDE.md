@@ -57,6 +57,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 훅이 잡은 오류는 `.claude/hooks/caught.log`에 쌓인다 (`docs/ai-log.md` 기록용).
 - 턴 시작·끝 시각은 `.claude/hooks/timing.log`에 쌓인다 (UserPromptSubmit·Stop 훅). ai-log의 "Claude 작업 시간" 계산용.
 
+### CI (`.github/workflows/ci.yml`)
+- GitHub Actions. `main`에 push할 때와 PR마다 `./gradlew test`를 돌린다. 같은 브랜치에 새 커밋이 오면 이전 실행은 취소된다.
+- MySQL 8.4·Redis 7은 서비스 컨테이너로 띄운다. DB 계정은 `application-local.yml`이 없어 환경변수(`SPRING_DATASOURCE_USERNAME`·`PASSWORD`)로 넣는다. 일회용 컨테이너 값이라 비밀값이 아니다. DB 주소는 `application-test.yml`의 `fitness_test` 그대로다.
+- **테스트에 필요한 설정을 `application-local.yml`에만 넣으면 CI에서 깨진다.** 테스트가 쓰는 값은 `application-test.yml`에 둔다 (local 설정은 CI에 없다).
+- 실패하면 Actions 실행 화면의 `test-report` 아티팩트(HTML)에서 깨진 테스트를 본다.
+
 ## 패키지 구조
 
 모듈러 모놀리스. **모듈(도메인)별 패키지, 모듈 내부는 레이어별**로 구성한다. (`com.fitness.<module>.<layer>`) 모듈 목록은 PRD 10장, 테이블 소유는 `docs/db-schema.md` 1장을 따른다.
