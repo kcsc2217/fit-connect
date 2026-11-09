@@ -1,5 +1,6 @@
 package com.fitness.support
 
+import com.fitness.config.ClockConfig
 import com.fitness.config.JpaAuditingConfig
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest
@@ -16,5 +17,5 @@ import org.springframework.test.context.ActiveProfiles
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("local", "test")
-@Import(JpaAuditingConfig::class, TestFlywayConfig::class)
+@Import(JpaAuditingConfig::class, ClockConfig::class, TestFlywayConfig::class)
 annotation class RepositoryTest
