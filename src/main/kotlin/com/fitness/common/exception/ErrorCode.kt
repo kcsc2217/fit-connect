@@ -20,6 +20,7 @@ enum class ErrorCode(
     INVALID_SOCIAL_TOKEN(HttpStatus.UNAUTHORIZED, "소셜 로그인 정보를 확인할 수 없습니다"),
     UNSUPPORTED_PROVIDER(HttpStatus.BAD_REQUEST, "지원하지 않는 로그인 방식입니다"),
     FORBIDDEN(HttpStatus.FORBIDDEN, "권한이 없습니다"),
+    SOCIAL_LOGIN_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "소셜 로그인에 잠시 연결할 수 없습니다"), // 공개키 조회 실패 (ADR 0005)
     ;
 
     companion object {

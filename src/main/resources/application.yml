@@ -34,3 +34,10 @@ fitness:
     # 운영은 환경변수 JWT_SECRET (Base64, 디코드 후 32바이트 이상. 예: openssl rand -base64 48).
     # 비어 있으면 앱이 시작하지 않는다. access 30분·refresh 14일은 JwtProperties 기본값 (ADR 0004).
     secret: ${JWT_SECRET:}
+  auth:
+    # 허용할 앱 식별자(id_token의 aud). 쉼표로 여러 개. 비어 있으면 그 소셜 로그인은 꺼진다(400 UNSUPPORTED_PROVIDER) (ADR 0005)
+    # 앱 키·클라이언트 ID는 비밀값이 아니지만(앱에 들어 있다) 환경마다 달라 환경변수로 받는다
+    kakao:
+      audiences: ${KAKAO_APP_KEYS:}      # 카카오 앱 키 (SDK를 초기화한 키)
+    google:
+      audiences: ${GOOGLE_CLIENT_IDS:}   # 구글 OAuth 클라이언트 ID (앱이 id_token을 받을 때 쓰는 것)

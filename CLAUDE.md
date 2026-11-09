@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 내 신체 정보와 운동 기록을 아는 AI 트레이너가 매일 오늘의 운동·식단을 짜서 알려주는 앱의 백엔드. 요구사항은 `docs/prd.md`(v2), DB는 `docs/db-schema.md`가 기준이다.
 
-> **진행 상황:** 엔티티 재구성(`docs/plans/001`~`004`)으로 모든 모듈(user, workout, routine, notification, llm, challenge, analytics)의 엔티티와 마이그레이션(V1~V5)을 만들었다. 공통 에러 응답(005)과 인증 1-A(006: JWT 발급·갱신·로그아웃, 내 정보 조회)까지 구현했다. 다음은 인증 1-B(카카오·구글 OIDC)와 온보딩이다.
+> **진행 상황:** 엔티티 재구성(`docs/plans/001`~`004`)으로 모든 모듈(user, workout, routine, notification, llm, challenge, analytics)의 엔티티와 마이그레이션(V1~V5)을 만들었다. 공통 에러 응답(005)과 인증 1-A(006: JWT 발급·갱신·로그아웃, 내 정보 조회)와 1-B(007: 카카오·구글 id_token 검증)까지 구현했다. 다음은 온보딩이다.
 
 ## 아키텍처 원칙
 - 숫자(무게·세트·반복 수·칼로리)는 서버 규칙이 계산한다. LLM은 종목 구성·순서·문구만 만든다.
@@ -69,7 +69,7 @@ com.fitness
 │   ├── entity/          # BaseTimeEntity
 │   ├── type/            # 여러 모듈이 같이 쓰는 값 (Equipment 등)
 │   └── exception/       # GlobalExceptionHandler, BusinessException, ErrorCode (에러 응답 형식은 ADR 0003)
-├── user/                # 소셜 로그인, JWT, 온보딩 프로필, 장비, 기기 토큰   ← 인증 1-A 구현됨 (security/, client/)
+├── user/                # 소셜 로그인, JWT, 온보딩 프로필, 장비, 기기 토큰   ← 인증 1-A·1-B 구현됨 (security/, client/)
 ├── workout/             # 종목 사전, 세션·세트 기록, 오프라인 동기화, PR·주간 볼륨   ← 엔티티·후보 종목 조회 구현됨
 ├── routine/             # 오늘의 운동 생성 (서버 규칙 + LLM), 기본 루틴 대체   ← 엔티티 구현됨
 ├── notification/        # 알림 예약, FCM 푸시, 발송 기록   ← 엔티티 구현됨
@@ -138,12 +138,16 @@ fun `같은 FCM 토큰을 두 번 저장하면 유니크 제약 위반 예외가
 ## Git 커밋 규칙
 - 커밋 메시지는 **한글로 작성**한다.
 
-## 인증 (ADR 0004, 계획 006)
+## 인증 (ADR 0004·0005, 계획 006·007)
 - 모든 경로는 기본이 "인증 필요"다. 공개 경로는 `user/security/SecurityConfig`의 `PUBLIC_PATHS`에만 추가한다. 인증 없이 없는 경로를 부르면 404가 아니라 401이다.
 - 컨트롤러는 `@AuthenticationPrincipal userId: Long`으로 사용자를 받고, 서비스에는 `Long`만 넘긴다 (Spring Security 타입을 서비스로 넘기지 않는다).
 - 401·403은 필터 단계에서 나므로 `GlobalExceptionHandler`를 거치지 않는다. 같은 형식은 `common.exception.problemDetail()`과 `ProblemDetailWriter`가 맞춘다.
 - 서명 키: 운영은 환경변수 `JWT_SECRET`(Base64, 디코드 후 32바이트 이상). 비어 있으면 앱이 시작하지 않는다. 로컬은 미커밋 `application-local.yml`의 `fitness.jwt.secret`.
 - 개발용 로그인(`provider: DEV`, token 값이 곧 소셜 ID)은 `fitness.auth.dev-login.enabled=true`일 때만 켜진다. 이 설정은 `application-local.yml`과 `application-test.yml`에만 둔다. 프로파일 조건으로 바꾸지 않는다 (기본 활성 프로파일이 local이라 운영에서 열릴 수 있다).
+- 카카오·구글 로그인은 앱이 받은 id_token을 `user/client/OidcIdTokenVerifier`가 공개키로 검증한다. 공개키 소스는 `OidcJwtDecoders`에서 Nimbus `JWKSourceBuilder`로 직접 조립한다 (Spring 기본 빌더는 모르는 kid마다 제한 없이 다시 받는다). 캐시·제한·타임아웃 값은 `OidcProviderSettings` 한곳에 있다.
+  - 토큰 문제는 401 `INVALID_SOCIAL_TOKEN`, 공개키를 받지 못하면 503 `SOCIAL_LOGIN_UNAVAILABLE`이다. Nimbus는 실패한 받기도 다시 받기 제한 횟수로 세므로, `RateLimitReachedException`만으로 401을 주지 않고 `FailureTrackingJWKSetSource`의 마지막 받기 결과로 나눈다.
+- 운영 배포에는 허용 aud 환경변수 `KAKAO_APP_KEYS`(카카오 앱 키), `GOOGLE_CLIENT_IDS`(구글 클라이언트 ID)가 필요하다. 쉼표로 여러 개. 비어 있으면 그 소셜 로그인은 400 `UNSUPPORTED_PROVIDER`다. 서버에서 카카오·구글 공개키 주소로 나가는 HTTPS가 열려 있어야 한다.
+- 소셜 로그인 테스트는 실제 카카오·구글에 연결하지 않는다. 통합 테스트는 `support/FakeOidcProviders`(가짜 공개키 서버, `@IntegrationTest`가 자동 연결)의 키로 `support/IdTokens.sign(...)`한 토큰을 쓴다.
 - KDoc·주석 안에 `/**` 같은 경로 글롭을 쓰면 Kotlin은 주석이 중첩된 것으로 보고 컴파일에 실패한다. 주석에서는 글롭을 풀어 쓴다.
 
 ## 로컬 실행 환경

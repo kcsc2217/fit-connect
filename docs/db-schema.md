@@ -271,7 +271,7 @@ erDiagram
 | id | BIGINT | PK | |
 | user_id | BIGINT | NOT NULL, FK → users.id | |
 | provider | VARCHAR(20) | NOT NULL | KAKAO, GOOGLE, APPLE, DEV (개발·테스트 전용 로그인, 계획 006. 운영 설정에서는 쓰이지 않는다) |
-| provider_user_id | VARCHAR(100) | NOT NULL | 소셜 서비스의 사용자 식별자 |
+| provider_user_id | VARCHAR(100) | NOT NULL | 소셜 서비스의 사용자 식별자 (id_token `sub`). 콜레이션 `utf8mb4_0900_bin`: 대소문자·끝 공백 구분 (V6, 계획 007) |
 | email | VARCHAR(255) | NULL | 제공되지 않을 수 있음 |
 
 - 유니크: `(provider, provider_user_id)` — 같은 소셜 계정으로 중복 가입 방지

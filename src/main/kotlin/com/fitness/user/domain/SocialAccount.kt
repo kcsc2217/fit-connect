@@ -31,7 +31,12 @@ class SocialAccount(
     @Column(nullable = false, length = 20)
     val provider: AuthProvider,
 
-    @Column(nullable = false, length = 100)
+    // 대소문자·끝 공백을 구분한다 (V6). 로컬 ddl-auto=create도 같은 콜레이션을 만들도록 columnDefinition에 적는다
+    @Column(
+        nullable = false,
+        length = 100,
+        columnDefinition = "VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin",
+    )
     val providerUserId: String,
 
     var email: String? = null,

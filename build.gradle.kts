@@ -52,6 +52,9 @@ dependencies {
     implementation("io.jsonwebtoken:jjwt-api:0.12.6")
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")
+    // 소셜 id_token 검증 (Nimbus JOSE+JWT 포함). 우리 토큰은 jjwt (ADR 0004, 0005)
+    // spring-boot-starter-oauth2-resource-server는 넣지 않는다: 리소스 서버 자동설정이 우리 JWT 필터와 겹친다
+    implementation("org.springframework.security:spring-security-oauth2-jose")
 
     // Actuator & Observability (Prometheus)
     implementation("org.springframework.boot:spring-boot-starter-actuator")

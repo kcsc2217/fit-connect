@@ -67,7 +67,8 @@ class AuthControllerTest @Autowired constructor(
     @Test
     fun `확인기가 없는 provider로 로그인하면 400 UNSUPPORTED_PROVIDER로 응답한다`() {
         // given
-        val body = """{"provider": "KAKAO", "token": "kakao-id-token"}"""
+        // 1-B부터 KAKAO·GOOGLE은 테스트에서 켜져 있다. APPLE은 iOS 출시 때까지 확인기가 없다
+        val body = """{"provider": "APPLE", "token": "apple-id-token"}"""
 
         // when
         val result = mockMvc.post("/api/v1/auth/login") {
