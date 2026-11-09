@@ -44,15 +44,15 @@ jobs:
           --health-retries=20
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "21"
 
       # Gradle 래퍼 검증 + 의존성·빌드 캐시 (두 번째 실행부터 빨라진다)
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
 
       - name: Test
         # 로컬은 DB 계정을 미커밋 application-local.yml에서 읽는다. CI에는 그 파일이 없어 환경변수로 넣는다.
@@ -65,7 +65,7 @@ jobs:
       # 실패하면 어떤 테스트가 깨졌는지 HTML 리포트로 내려받아 볼 수 있게 한다
       - name: Upload test report
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-report
           path: build/reports/tests/test/

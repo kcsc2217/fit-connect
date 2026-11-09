@@ -100,6 +100,7 @@ com.fitness
 - 시각은 `Instant`(UTC, `DATETIME(6)`), 사용자 기준 날짜는 `LocalDate`, 사용자 기준 시각은 `LocalTime` (`docs/decisions/0002-utc-instant.md`).
   - UTC 고정은 DB 연결 시간대(`connectionTimeZone=UTC`)로 한다. `hibernate.jdbc.time_zone`은 `LocalTime`까지 밀어서 저장하므로 쓰지 않고, JDBC URL에 `serverTimezone`도 넣지 않는다.
   - 시간 값 컬럼을 추가하면 DB 원본 값을 직접 읽는 테스트를 함께 쓴다 (JPA로 다시 읽으면 변환이 되돌려져 버그가 안 보인다).
+  - 현재 시각은 `Instant.now()`가 아니라 `Clock` 빈(`config/ClockConfig`)에서 읽는다. 이 시계는 `DATETIME(6)`과 같은 마이크로초 단위로 끊는다. 리눅스(CI·운영) 시계는 나노초라 그대로 저장하면 MySQL이 반올림해 메모리 값과 DB 값이 달라진다 (맥은 원래 마이크로초라 로컬에서는 안 보인다).
 - 상태값은 `@Enumerated(EnumType.STRING)` + `VARCHAR`. 무게·키·체중은 `BigDecimal` + `precision/scale`.
 - DDL 타입이 Kotlin 타입과 다르게 매핑되면(`TINYINT` 등) `@JdbcTypeCode`로 맞춘다. 맞는지는 `SchemaValidationTest`가 확인한다.
 - 복합 키는 `@IdClass`가 아니라 `@Embeddable` + `@EmbeddedId` (kotlin-jpa 플러그인이 기본 생성자를 만들어 주도록).
