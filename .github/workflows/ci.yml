@@ -112,4 +112,7 @@ jobs:
 
       - run: flutter pub get
       - run: flutter analyze
+      # 서버 테스트처럼 Asia/Seoul로 고정한다 (UTC 장비에서 시간대 버그가 숨지 않게)
       - run: flutter test
+        env:
+          TZ: Asia/Seoul

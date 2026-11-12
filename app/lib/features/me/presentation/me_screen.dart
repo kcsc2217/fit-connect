@@ -28,7 +28,8 @@ class MeScreen extends ConsumerWidget {
             AsyncData(:final value) => _Profile(me: value),
             // 세션 만료면 라우터가 로그인 화면으로 보내므로 따로 표시하지 않는다
             AsyncError(error: SessionExpiredException()) => const SizedBox(),
-            AsyncError() => _LoadError(
+            AsyncError(:final error) => _LoadError(
+              network: error is NetworkException,
               onRetry: () => ref.invalidate(meProvider),
             ),
             _ => const Padding(
@@ -67,7 +68,8 @@ class _Profile extends StatelessWidget {
                 radius: 28,
                 backgroundColor: AppColors.lime.withValues(alpha: 0.14),
                 child: Text(
-                  me.nickname.characters.first,
+                  // 닉네임은 서버가 항상 채우지만, 비어 있어도 화면이 깨지지 않게
+                  me.nickname.isEmpty ? '?' : me.nickname.characters.first,
                   style: text.titleMedium?.copyWith(color: AppColors.lime),
                 ),
               ),
@@ -129,8 +131,10 @@ class _InfoRow extends StatelessWidget {
 }
 
 class _LoadError extends StatelessWidget {
-  const _LoadError({required this.onRetry});
+  const _LoadError({required this.network, required this.onRetry});
 
+  /// 연결 실패면 연결 확인 문구, 아니면 일반 실패 문구
+  final bool network;
   final VoidCallback onRetry;
 
   @override
@@ -139,7 +143,7 @@ class _LoadError extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            '내 정보를 불러오지 못했어요.',
+            network ? '연결을 확인해 주세요.' : '내 정보를 불러오지 못했어요.',
             style: Theme.of(context).textTheme.bodyLarge,
           ),
           const SizedBox(height: 12),

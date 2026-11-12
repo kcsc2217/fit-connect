@@ -4,12 +4,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:trainer_ssaem/app.dart';
 import 'package:trainer_ssaem/core/config/app_config.dart';
 import 'package:trainer_ssaem/core/network/http_client.dart';
+import 'package:trainer_ssaem/core/network/retry_policy.dart';
 import 'package:trainer_ssaem/features/auth/data/social/social_login_client.dart';
 import 'package:trainer_ssaem/features/auth/data/token_storage.dart';
 import 'package:trainer_ssaem/features/auth/domain/auth_models.dart';
 
 import 'fake_http_adapter.dart';
-import 'fake_social_login_client.dart';
 import 'memory_token_storage.dart';
 
 /// 테스트가 바꿔 끼우는 협력 객체 묶음
@@ -17,20 +17,17 @@ class TestDeps {
   TestDeps({
     FakeHttpAdapter? adapter,
     MemoryTokenStorage? storage,
-    Map<AuthProvider, SocialLoginClient>? clients,
+    this.clients,
     this.devLoginEnabled = false,
   }) : adapter = adapter ?? FakeHttpAdapter(),
-       storage = storage ?? MemoryTokenStorage(),
-       clients =
-           clients ??
-           {
-             AuthProvider.kakao: FakeSocialLoginClient(AuthProvider.kakao),
-             AuthProvider.google: FakeSocialLoginClient(AuthProvider.google),
-           };
+       storage = storage ?? MemoryTokenStorage();
 
   final FakeHttpAdapter adapter;
   final MemoryTokenStorage storage;
-  final Map<AuthProvider, SocialLoginClient> clients;
+
+  /// 소셜 SDK 가짜. null이면 실제 socialLoginClientsProvider를 쓴다
+  /// (설정에 따라 어떤 버튼이 보이는지 검증할 때. 키가 없어 SDK는 부르지 않는다)
+  final Map<AuthProvider, SocialLoginClient>? clients;
   final bool devLoginEnabled;
 
   List<Override> get overrides => [
@@ -39,12 +36,12 @@ class TestDeps {
     ),
     httpClientAdapterProvider.overrideWithValue(adapter),
     tokenStorageProvider.overrideWithValue(storage),
-    socialLoginClientsProvider.overrideWithValue(clients),
+    if (clients != null) socialLoginClientsProvider.overrideWithValue(clients!),
   ];
 
-  /// 단위 테스트용 컨테이너. 실패한 provider를 자동 재시도하지 않는다 (Riverpod 3 기본값 끔).
+  /// 단위 테스트용 컨테이너. 재시도 정책은 앱과 같다 (appRetry).
   ProviderContainer container() =>
-      ProviderContainer.test(overrides: overrides, retry: (_, _) => null);
+      ProviderContainer.test(overrides: overrides, retry: appRetry);
 }
 
 /// 앱 전체를 띄우고 화면이 멈출 때까지 기다린다.
@@ -52,7 +49,7 @@ Future<void> pumpTestApp(WidgetTester tester, TestDeps deps) async {
   await tester.pumpWidget(
     ProviderScope(
       overrides: deps.overrides,
-      retry: (_, _) => null,
+      retry: appRetry,
       child: const TrainerSsaemApp(),
     ),
   );

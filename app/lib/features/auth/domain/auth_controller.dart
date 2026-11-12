@@ -20,9 +20,11 @@ class AuthController extends AsyncNotifier<AuthState> {
       return AuthState.fromStatus(me.status);
     } on SessionExpiredException {
       return const SignedOut(); // 토큰은 인터셉터가 이미 지웠다
+    } on NetworkException {
+      // 토큰은 두고 다시 시도하게 한다
+      return const StartupError(StartupFailure.network);
     } on AppException {
-      // 연결 실패, 서버 오류: 토큰은 두고 다시 시도하게 한다
-      return const StartupError();
+      return const StartupError(StartupFailure.server);
     }
   }
 

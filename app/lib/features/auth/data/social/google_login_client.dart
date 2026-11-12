@@ -38,8 +38,10 @@ class GoogleLoginClient implements SocialLoginClient {
 
   @override
   Future<void> signOut() async {
-    if (_iosClientId.isEmpty || _initialized == null) return;
+    if (_iosClientId.isEmpty) return;
     try {
+      // 앱을 다시 켠 뒤(refresh로 자동 로그인)에는 아직 초기화 전이라 먼저 초기화한다
+      await _ensureInitialized();
       await GoogleSignIn.instance.signOut();
     } on Object {
       // 로그인 상태가 아니면 무시

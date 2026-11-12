@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trainer_ssaem/core/network/api_exception.dart';
@@ -81,10 +83,11 @@ void main() {
       ..refreshSucceeds(delay: const Duration(milliseconds: 20));
 
     // when
-    await Future.wait([h.getMe(), h.getMe(), h.getMe()]);
+    final results = await Future.wait([h.getMe(), h.getMe(), h.getMe()]);
 
     // then
     expect(h.adapter.count('POST', refreshPath), 1);
+    expect(results, everyElement(meJson()));
   });
 
   test('다른 요청이 이미 갱신했으면 갱신 없이 저장된 새 access로 다시 보낸다', () async {
@@ -98,10 +101,11 @@ void main() {
     });
 
     // when
-    await h.getMe();
+    final result = await h.getMe();
 
     // then
     expect(h.adapter.count('POST', refreshPath), 0);
+    expect(result, meJson());
   });
 
   test('갱신이 INVALID_REFRESH_TOKEN으로 실패하면 토큰을 지우고 세션 만료를 알린다', () async {
@@ -157,6 +161,29 @@ void main() {
 
     // then
     expect(h.adapter.count('POST', refreshPath), 1);
+  });
+
+  test('갱신 중에 로그아웃되면 늦게 온 갱신 응답의 토큰을 저장하지 않는다', () async {
+    // given: 갱신 응답이 오기 전에 로그아웃(토큰 삭제)이 끼어드는 상황
+    final h = _Harness()..meExpiresOldAccess();
+    final refreshArrived = Completer<void>();
+    final logoutDone = Completer<void>();
+    h.adapter.on('POST', refreshPath, (_) async {
+      refreshArrived.complete();
+      await logoutDone.future;
+      return FakeResponse(200, tokenJson('new-access', 'new-refresh'));
+    });
+    h.adapter.on('POST', logoutPath, (_) => const FakeResponse(204));
+    final request = h.getMe();
+    await refreshArrived.future;
+    await h.storage.clear();
+    logoutDone.complete();
+
+    // when
+    await request;
+
+    // then
+    expect(h.storage.tokens, isNull);
   });
 
   test('갱신 중 네트워크가 끊기면 토큰을 지우지 않는다', () async {

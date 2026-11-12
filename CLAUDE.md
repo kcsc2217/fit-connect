@@ -157,7 +157,7 @@ fun `같은 FCM 토큰을 두 번 저장하면 유니크 제약 위반 예외가
 
 ```bash
 flutter run --dart-define-from-file=config/local.json   # 시뮬레이터 실행 (로컬 서버 8080 필요)
-flutter test                                             # 전체 테스트
+TZ=Asia/Seoul flutter test                               # 전체 테스트 (시간대 고정, CI·훅과 같음)
 flutter test test/router_test.dart                       # 파일 단위
 flutter analyze                                          # 정적 분석 (훅·CI와 같은 규칙)
 ```
@@ -185,7 +185,8 @@ lib/
 - 서버와 같은 Given-When-Then: 본문을 `// given` `// when` `// then`으로 나누고, 이름은 한글 문장 (`test('...한다', ...)`, `testWidgets(...)`).
 - 가짜 객체는 mocktail (Mockk와 같은 역할). 서버는 `test/support/fake_http_adapter.dart`, 소셜 SDK는 `FakeSocialLoginClient`, Keychain은 `MemoryTokenStorage`로 바꾼다. 앱 전체는 `pumpTestApp(tester, TestDeps(...))`로 띄운다.
 - 여러 값을 한 번에 비교할 때 레코드 `(a, b)`를 쓰면 `==`로 비교된다. Finder나 `isA` 같은 매처는 레코드에 넣지 말고 `expect`를 나눈다.
-- Riverpod 3은 실패한 provider를 자동 재시도한다. 테스트 컨테이너는 `TestDeps.container()`(재시도 끔)를 쓴다.
+- Riverpod 3은 실패한 provider를 기본으로 약 38초간 자동 재시도한다. 앱과 테스트 모두 `core/network/retry_policy.dart`의 `appRetry`(AppException은 재시도 안 함)를 쓴다. 단위 테스트는 `TestDeps.container()`로 만든다.
+- 테스트는 `TZ=Asia/Seoul`로 돈다 (서버 테스트와 같은 이유). 시간 값 테스트에는 UTC와 한국 시간에서 날짜가 갈리는 값을 쓴다.
 
 ## Git 커밋 규칙
 - 커밋 메시지는 **한글로 작성**한다.

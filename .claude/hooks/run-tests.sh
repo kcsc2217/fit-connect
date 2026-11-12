@@ -55,7 +55,7 @@ app_fp=$(fingerprint_of app)
 app_passed="$state_dir/last-passed-app"
 if [ -n "$app_fp" ] && command -v flutter >/dev/null 2>&1 &&
   [ "$(cat "$app_passed" 2>/dev/null)" != "$app_fp" ]; then
-  output=$(cd app && flutter test --no-pub 2>&1)
+  output=$(cd app && TZ=Asia/Seoul flutter test --no-pub 2>&1)
   if [ $? -eq 0 ]; then
     echo "$app_fp" >"$app_passed"
   else

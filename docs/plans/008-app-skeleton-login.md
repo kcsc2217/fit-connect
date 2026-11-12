@@ -289,3 +289,16 @@ app:
 - 2026-11-12 (구현 중): 토큰 보관소(`token_storage.dart`)와 인터셉터(`auth_interceptor.dart`)를 `core/`가 아니라 `features/auth/data/`에 두었다. 둘 다 인증 기능(TokenRefresher, AuthController)에 의존해서, `core`에 두면 "`core`는 `features`에 의존하지 않는다" 규칙을 어긴다. 인증이 필요한 Dio도 `features/auth/data/auth_dio.dart`(`authDioProvider`)에 둔다
 - 2026-11-12 (구현 중): 테스트 25번의 단언 형태를 고쳤다 (Finder 묶음을 레코드로 비교하면 항상 다르다고 나와서 `expect`를 셋으로 나눔). 검증 내용은 같다
 - 2026-11-12 (구현 중): Flutter 3.50은 Material 위젯을 `package:material_ui`로 분리했다. 생성된 템플릿을 따라 이 패키지를 쓴다
+- 2026-11-12 (리뷰 반영, 지적 11건 모두):
+  1. 갱신 중 로그아웃하면 늦게 온 갱신 응답이 지운 토큰을 다시 저장하던 문제 → `TokenStorage.generation`(clear마다 증가)을 두고, 갱신 응답을 받았을 때 세대가 바뀌었으면 저장하지 않고 새 refresh를 서버에서 폐기. 테스트 추가 (`갱신 중에 로그아웃되면 늦게 온 갱신 응답의 토큰을 저장하지 않는다`)
+  2. 테스트 20·21이 기본 문구에도 걸리던 것 → 문구 전체를 정확히 비교
+  3. 테스트 18·19가 소셜 클라이언트 목록을 통째로 바꿔 끼워 설정을 검증하지 못하던 것 → `TestDeps.clients`가 없으면 실제 provider 사용. `개발용 로그인이 켜져 있으면 개발용 버튼이 보인다` 추가
+  4. Riverpod 3 기본 자동 재시도(약 38초) → `core/network/retry_policy.dart`의 `appRetry`(AppException은 재시도 안 함)를 앱과 테스트가 함께 사용. `나 탭에서 연결이 끊기면 재시도를 기다리지 않고 다시 시도 버튼을 보여준다` 추가
+  5. 테스트 2·3이 재요청 성공을 확인하지 않던 것 → 결과 단언 추가
+  6. 앱 재시작 후 구글 로그아웃이 생략되던 것 → 로그아웃 전에도 SDK 초기화
+  7. Pretendard 글꼴 추가 (1.3.9, SIL OFL 1.1, OTF 5종 약 7.9MB, jsDelivr의 공식 npm 패키지에서 받음)
+  8. 앱 시작 중 500도 "연결을 확인해 주세요"로 보이던 것 → `StartupError(StartupFailure.network|server)`로 문구 분리. `앱 시작 중 서버 오류면 ... 문제가 생겼다는 문구를 보여준다` 추가. 나 탭 오류 문구도 연결 실패와 나머지를 나눔
+  9. 가입일 테스트가 시간대 처리 누락을 잡지 못하던 것 → UTC와 한국 시간에서 날짜가 갈리는 값으로 바꾸고, 앱 테스트를 `TZ=Asia/Seoul`로 고정 (CI, 종료 훅, CLAUDE.md)
+  10. 개발용 로그인 버튼이 출시 빌드에서도 보일 수 있던 것 → `kDebugMode`일 때만
+  11. 빈 닉네임이면 나 탭이 깨지던 것 → '?'로 표시
+  - 테스트는 27개 → 31개

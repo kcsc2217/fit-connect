@@ -25,7 +25,18 @@ class Active extends AuthState {
   const Active();
 }
 
-/// 앱 시작 중 서버에 못 붙음 → 다시 시도 화면 (토큰은 유지)
+/// 앱 시작이 실패한 원인 (화면 문구를 나눈다)
+enum StartupFailure {
+  /// 연결 실패·타임아웃
+  network,
+
+  /// 서버 오류(500 등), 형식이 다른 응답
+  server,
+}
+
+/// 앱 시작 중 내 정보를 못 받음 → 다시 시도 화면 (토큰은 유지)
 class StartupError extends AuthState {
-  const StartupError();
+  const StartupError(this.failure);
+
+  final StartupFailure failure;
 }

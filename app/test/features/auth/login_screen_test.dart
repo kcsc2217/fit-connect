@@ -44,6 +44,17 @@ void main() {
     expect(find.text('개발용 로그인'), findsNothing);
   });
 
+  testWidgets('개발용 로그인이 켜져 있으면 개발용 버튼이 보인다', (tester) async {
+    // given
+    final deps = TestDeps(devLoginEnabled: true);
+
+    // when
+    await pumpTestApp(tester, deps);
+
+    // then
+    expect(find.text('개발용 로그인'), findsOneWidget);
+  });
+
   testWidgets('SOCIAL_LOGIN_UNAVAILABLE이면 잠시 후 다시 시도하라는 문구를 보여준다', (
     tester,
   ) async {
@@ -58,7 +69,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // then
-    expect(find.textContaining('잠시 후 다시 시도해 주세요'), findsOneWidget);
+    expect(find.text('잠시 후 다시 시도해 주세요.'), findsOneWidget);
   });
 
   testWidgets('INVALID_SOCIAL_TOKEN이면 로그인하지 못했다는 문구를 보여준다', (tester) async {
@@ -73,6 +84,6 @@ void main() {
     await tester.pumpAndSettle();
 
     // then
-    expect(find.textContaining('로그인하지 못했어요'), findsOneWidget);
+    expect(find.text('로그인하지 못했어요. 다시 시도해 주세요.'), findsOneWidget);
   });
 }

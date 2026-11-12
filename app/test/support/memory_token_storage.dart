@@ -8,6 +8,9 @@ class MemoryTokenStorage implements TokenStorage {
   AuthTokens? tokens;
 
   @override
+  int generation = 0;
+
+  @override
   Future<AuthTokens?> read() async => tokens;
 
   @override
@@ -20,5 +23,8 @@ class MemoryTokenStorage implements TokenStorage {
   Future<void> save(AuthTokens tokens) async => this.tokens = tokens;
 
   @override
-  Future<void> clear() async => tokens = null;
+  Future<void> clear() async {
+    generation++;
+    tokens = null;
+  }
 }

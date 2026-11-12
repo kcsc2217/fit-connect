@@ -84,4 +84,20 @@ void main() {
     // then
     expect(find.text('카카오로 시작하기'), findsOneWidget);
   });
+
+  testWidgets('앱 시작 중 서버 오류면 연결 문제가 아니라 문제가 생겼다는 문구를 보여준다', (tester) async {
+    // given
+    final deps = TestDeps(storage: MemoryTokenStorage(tokens('a', 'r')));
+    deps.adapter.on(
+      'GET',
+      mePath,
+      (_) => FakeResponse.problem(500, 'INTERNAL_ERROR'),
+    );
+
+    // when
+    await pumpTestApp(tester, deps);
+
+    // then
+    expect(find.text('문제가 생겼어요'), findsOneWidget);
+  });
 }

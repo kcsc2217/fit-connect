@@ -4,6 +4,9 @@ import 'package:trainer_ssaem/features/auth/domain/auth_models.dart';
 
 /// 토큰 보관소. 앱에서는 iOS Keychain, 테스트에서는 메모리.
 abstract interface class TokenStorage {
+  /// [clear]할 때마다 1씩 오르는 세대 번호. 진행 중이던 갱신이 그사이 로그아웃됐는지 알아보는 데 쓴다.
+  int get generation;
+
   Future<AuthTokens?> read();
   Future<String?> readAccessToken();
   Future<String?> readRefreshToken();
@@ -13,6 +16,9 @@ abstract interface class TokenStorage {
 
 /// Keychain(flutter_secure_storage)에 토큰 4개를 둔다. 일반 저장소·로그에는 남기지 않는다.
 class SecureTokenStorage implements TokenStorage {
+  @override
+  int generation = 0;
+
   SecureTokenStorage([FlutterSecureStorage? storage])
     : _storage = storage ?? const FlutterSecureStorage();
 
@@ -66,6 +72,7 @@ class SecureTokenStorage implements TokenStorage {
 
   @override
   Future<void> clear() async {
+    generation++; // 지우기 시작한 순간부터 진행 중인 갱신은 저장하지 못한다
     for (final key in [
       _access,
       _accessExpiresAt,
