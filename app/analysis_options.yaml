@@ -1,0 +1,17 @@
+# 정적 분석 규칙. flutter analyze(훅, CI)가 이 파일을 쓴다.
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    - build/**
+    - ios/**
+  language:
+    strict-casts: true
+    strict-raw-types: true
+
+linter:
+  rules:
+    - always_use_package_imports
+    - prefer_final_locals
+    - require_trailing_commas
+    - unawaited_futures
