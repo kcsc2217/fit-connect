@@ -34,10 +34,9 @@ void main() {
     await tester.pumpAndSettle();
 
     // then
-    expect(
-      (find.text('회원1234'), find.text('2026.11.05'), find.text('카카오')),
-      (findsOneWidget, findsOneWidget, findsOneWidget),
-    );
+    expect(find.text('회원1234'), findsOneWidget);
+    expect(find.text('2026.11.05'), findsOneWidget);
+    expect(find.text('카카오'), findsOneWidget);
   });
 
   testWidgets('나 탭에서 로그아웃하면 로그인 화면으로 간다', (tester) async {

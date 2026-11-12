@@ -1,5 +1,7 @@
-# 테스트 자동 실행. main에 push할 때와 PR마다 ./gradlew test를 돌린다.
-# 통합 테스트가 쓰는 MySQL·Redis는 서비스 컨테이너로 띄운다 (로컬은 직접 설치, CLAUDE.md "로컬 실행 환경").
+# 테스트 자동 실행. main에 push할 때와 PR마다 돈다.
+# - test: 서버 ./gradlew test. main 보호 규칙의 필수 체크라 경로와 관계없이 항상 돈다.
+#   통합 테스트가 쓰는 MySQL·Redis는 서비스 컨테이너로 띄운다 (로컬은 직접 설치, CLAUDE.md "로컬 실행 환경").
+# - app: Flutter 앱 analyze + test. app/이 바뀐 경우에만 돈다 (계획 008).
 name: CI
 
 on:
@@ -70,3 +72,44 @@ jobs:
           name: test-report
           path: build/reports/tests/test/
           retention-days: 7
+
+  # 바뀐 경로 판별. app 작업을 돌릴지 정하는 데만 쓴다
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read # PR에서 바뀐 파일 목록을 읽는다
+    outputs:
+      app: ${{ steps.filter.outputs.app }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            app:
+              - 'app/**'
+              - '.github/workflows/ci.yml'
+
+  app:
+    needs: changes
+    if: needs.changes.outputs.app == 'true'
+    # analyze·test는 iOS 빌드가 아니라 Linux로 충분하다
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: "3.50.0" # 로컬과 같은 버전 (CLAUDE.md "앱")
+          cache: true
+
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test

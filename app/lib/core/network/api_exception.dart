@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 
 /// 앱 안에서 다루는 서버 호출 실패. 화면은 이 타입과 [ApiException.code]로 분기한다.
@@ -47,10 +49,55 @@ class SessionExpiredException extends AppException {
 
 /// 응답 본문(ProblemDetail)에서 code를 꺼낸다. 없으면 null.
 String? problemCodeOf(Response<dynamic>? response) {
-  throw UnimplementedError();
+  final body = _jsonBodyOf(response);
+  final code = body?['code'];
+  return code is String && code.isNotEmpty ? code : null;
 }
 
 /// Dio 예외를 [AppException]으로 바꾼다.
 AppException toAppException(DioException error) {
-  throw UnimplementedError();
+  // 인터셉터가 이미 정한 결과 (세션 만료, 갱신 중 연결 실패)
+  final inner = error.error;
+  if (inner is AppException) return inner;
+
+  switch (error.type) {
+    case DioExceptionType.connectionTimeout:
+    case DioExceptionType.sendTimeout:
+    case DioExceptionType.receiveTimeout:
+    case DioExceptionType.transformTimeout:
+    case DioExceptionType.connectionError:
+      return const NetworkException();
+    case DioExceptionType.badResponse:
+      final response = error.response;
+      final status = response?.statusCode;
+      final code = problemCodeOf(response);
+      if (status == null || code == null) {
+        return UnknownApiException(status: status);
+      }
+      final detail = _jsonBodyOf(response)?['detail'];
+      return ApiException(
+        status: status,
+        code: code,
+        detail: detail is String ? detail : null,
+      );
+    case DioExceptionType.badCertificate:
+    case DioExceptionType.cancel:
+    case DioExceptionType.unknown:
+      return UnknownApiException(status: error.response?.statusCode);
+  }
+}
+
+/// 응답 본문을 JSON 객체로 읽는다. 문자열로 온 경우(Content-Type이 JSON이 아닐 때)도 시도한다.
+Map<String, dynamic>? _jsonBodyOf(Response<dynamic>? response) {
+  final data = response?.data;
+  if (data is Map<String, dynamic>) return data;
+  if (data is String && data.trimLeft().startsWith('{')) {
+    try {
+      final decoded = jsonDecode(data);
+      if (decoded is Map<String, dynamic>) return decoded;
+    } on FormatException {
+      return null;
+    }
+  }
+  return null;
 }

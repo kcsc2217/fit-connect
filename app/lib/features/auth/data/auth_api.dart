@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:trainer_ssaem/core/network/api_exception.dart';
 import 'package:trainer_ssaem/core/network/http_client.dart';
 import 'package:trainer_ssaem/features/auth/domain/auth_models.dart';
 
@@ -18,17 +19,41 @@ class AuthApi {
   final Dio _dio;
 
   /// POST /api/v1/auth/login
-  Future<LoginResult> login(AuthProvider provider, String token) =>
-      throw UnimplementedError();
+  Future<LoginResult> login(AuthProvider provider, String token) async {
+    final body = await _post('/api/v1/auth/login', {
+      'provider': provider.wire,
+      'token': token,
+    });
+    return LoginResult(
+      tokens: AuthTokens.fromJson(body!),
+      status: UserStatus.fromWire(body['status'] as String),
+    );
+  }
 
   /// POST /api/v1/auth/refresh
-  Future<AuthTokens> refresh(String refreshToken) => throw UnimplementedError();
+  Future<AuthTokens> refresh(String refreshToken) async {
+    final body = await _post('/api/v1/auth/refresh', {
+      'refreshToken': refreshToken,
+    });
+    return AuthTokens.fromJson(body!);
+  }
 
   /// POST /api/v1/auth/logout
-  Future<void> logout(String refreshToken) => throw UnimplementedError();
+  Future<void> logout(String refreshToken) async {
+    await _post('/api/v1/auth/logout', {'refreshToken': refreshToken});
+  }
 
-  // 스텁 단계에서 필드 미사용 경고를 피하기 위한 접근 (구현 시 제거)
-  Dio get dio => _dio;
+  Future<Map<String, dynamic>?> _post(
+    String path,
+    Map<String, String> data,
+  ) async {
+    try {
+      final res = await _dio.post<Map<String, dynamic>>(path, data: data);
+      return res.data;
+    } on DioException catch (e) {
+      throw toAppException(e);
+    }
+  }
 }
 
 final authApiProvider = Provider<AuthApi>(

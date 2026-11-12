@@ -32,7 +32,7 @@ final socialLoginClientsProvider =
     Provider<Map<AuthProvider, SocialLoginClient>>((ref) {
       final config = ref.watch(appConfigProvider);
       return {
-        AuthProvider.kakao: KakaoLoginClient(),
+        AuthProvider.kakao: KakaoLoginClient(config.kakaoNativeAppKey),
         AuthProvider.google: GoogleLoginClient(config.googleIosClientId),
         if (config.devLoginEnabled)
           AuthProvider.dev: DevLoginClient(config.devLoginToken),

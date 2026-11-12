@@ -286,3 +286,6 @@ app:
 
 ## 변경 이력
 - 2026-11-12: "확인 필요" 두 가지(ATS는 `NSAllowsLocalNetworking`, CI는 앱 작업만 경로로 거름)를 계획대로 승인. 명세 문구를 이에 맞춰 고친다
+- 2026-11-12 (구현 중): 토큰 보관소(`token_storage.dart`)와 인터셉터(`auth_interceptor.dart`)를 `core/`가 아니라 `features/auth/data/`에 두었다. 둘 다 인증 기능(TokenRefresher, AuthController)에 의존해서, `core`에 두면 "`core`는 `features`에 의존하지 않는다" 규칙을 어긴다. 인증이 필요한 Dio도 `features/auth/data/auth_dio.dart`(`authDioProvider`)에 둔다
+- 2026-11-12 (구현 중): 테스트 25번의 단언 형태를 고쳤다 (Finder 묶음을 레코드로 비교하면 항상 다르다고 나와서 `expect`를 셋으로 나눔). 검증 내용은 같다
+- 2026-11-12 (구현 중): Flutter 3.50은 Material 위젯을 `package:material_ui`로 분리했다. 생성된 템플릿을 따라 이 패키지를 쓴다

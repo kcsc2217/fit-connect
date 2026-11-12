@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:trainer_ssaem/core/network/api_exception.dart';
 import 'package:trainer_ssaem/features/auth/data/auth_dio.dart';
 import 'package:trainer_ssaem/features/auth/domain/auth_models.dart';
 
@@ -28,10 +29,24 @@ class MeApi {
   final Dio _dio;
 
   /// 실패는 AppException으로 던진다 (만료면 인터셉터가 먼저 갱신을 시도한다).
-  Future<Me> fetch() => throw UnimplementedError();
-
-  // 스텁 단계에서 필드 미사용 경고를 피하기 위한 접근 (구현 시 제거)
-  Dio get dio => _dio;
+  Future<Me> fetch() async {
+    final Map<String, dynamic> body;
+    try {
+      body = (await _dio.get<Map<String, dynamic>>('/api/v1/users/me')).data!;
+    } on DioException catch (e) {
+      throw toAppException(e);
+    }
+    return Me(
+      id: body['id'] as int,
+      nickname: body['nickname'] as String,
+      status: UserStatus.fromWire(body['status'] as String),
+      createdAt: DateTime.parse(body['createdAt'] as String),
+      providers: (body['providers'] as List<dynamic>)
+          .map((p) => AuthProvider.fromWire(p as String))
+          .nonNulls
+          .toList(),
+    );
+  }
 }
 
 final meApiProvider = Provider<MeApi>(
