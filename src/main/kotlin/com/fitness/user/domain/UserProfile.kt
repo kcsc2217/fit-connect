@@ -91,7 +91,17 @@ class UserProfile(
         timezone: String,
         sessionMinutes: Short,
     ) {
-        TODO("009 구현")
+        this.heightCm = heightCm
+        this.weightKg = weightKg
+        this.birthYear = birthYear
+        this.sex = sex
+        this.goal = goal
+        this.experience = experience
+        this.splitType = splitType
+        this.workoutDays = workoutDays // setter가 0~127 범위를 검증한다
+        this.alarmTime = alarmTime
+        this.timezone = timezone
+        this.sessionMinutes = sessionMinutes
     }
 
     companion object {

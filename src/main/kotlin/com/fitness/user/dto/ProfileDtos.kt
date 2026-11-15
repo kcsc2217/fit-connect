@@ -38,11 +38,13 @@ data class ProfileRequest(
     val goal: Goal,
     val experience: Experience,
 
-    // 빈 목록 허용: 맨몸 종목만 후보가 된다
-    val equipment: List<Equipment>,
+    // 빈 목록 허용: 맨몸 종목만 후보가 된다.
+    // 원소가 nullable인 이유: Jackson은 ["BARBELL", null]의 null을 그대로 넣는다. 원소 @NotNull은 Kotlin이
+    // 타입 어노테이션을 바이트코드에 쓰지 않아 동작하지 않으므로, null은 UserProfileService가 400으로 막는다
+    val equipment: List<Equipment?>,
 
     @field:NotEmpty
-    val workoutDays: List<DayOfWeek>,
+    val workoutDays: List<DayOfWeek?>,
 
     val splitType: SplitType,
 

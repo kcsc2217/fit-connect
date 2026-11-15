@@ -1,6 +1,6 @@
 package com.fitness.common.exception
 
-import com.fasterxml.jackson.databind.exc.MismatchedInputException
+import com.fasterxml.jackson.databind.JsonMappingException
 import jakarta.servlet.http.HttpServletRequest
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
@@ -32,6 +32,11 @@ class GlobalExceptionHandler : ResponseEntityExceptionHandler() {
     fun handleBusiness(e: BusinessException, request: HttpServletRequest): ResponseEntity<ProblemDetail> =
         respond(problem(e.errorCode, e.message, request.requestURI))
 
+    // 서비스 검증 실패: @Valid 실패와 같은 모양(errors[{field, message}])으로 준다
+    @ExceptionHandler(InvalidInputException::class)
+    fun handleInvalidInput(e: InvalidInputException, request: HttpServletRequest): ResponseEntity<ProblemDetail> =
+        respond(invalidInput(listOf(FieldErrorDetail(e.field, e.reason)), request.requestURI))
+
     // 예상하지 못한 예외: 내부 메시지(SQL, 스택 등)를 숨기고 로그로만 남긴다
     @ExceptionHandler(Exception::class)
     fun handleUnexpected(e: Exception, request: HttpServletRequest): ResponseEntity<ProblemDetail> {
@@ -61,7 +66,9 @@ class GlobalExceptionHandler : ResponseEntityExceptionHandler() {
         request: WebRequest,
     ): ResponseEntity<Any> {
         val cause = ex.cause
-        if (cause is MismatchedInputException && cause.path.isNotEmpty()) {
+        // MismatchedInputException(타입 불일치, 모르는 enum 등)뿐 아니라 숫자 범위 초과(Short에 70000)처럼
+        // InputCoercionException을 감싼 JsonMappingException도 필드 경로가 있으면 같은 형식으로 준다
+        if (cause is JsonMappingException && cause.path.isNotEmpty()) {
             // @Valid 경로와 같은 형식(items[0].name)으로: 인덱스 앞에는 "."을 붙이지 않는다
             val field = cause.path.withIndex().joinToString("") { (i, ref) ->
                 ref.fieldName?.let { if (i == 0) it else ".$it" } ?: "[${ref.index}]"

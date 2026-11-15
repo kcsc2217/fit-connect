@@ -220,3 +220,12 @@ data class ProfileRequest(
 
 ## 변경 이력
 - 2026-11-15: 계획대로 승인. "확인 필요"의 요일 값 이름은 `DayOfWeek`(`MONDAY`)로 확정하고 명세 예시(`MON`)를 고쳤다
+- 2026-11-15 (구현 중): 테스트 3·5의 목록 단언을 `value(listOf(...))`에서 Hamcrest `value(contains(...))`로 바꿨다. Spring의 `jsonPath().value()`는 기대값의 클래스로 JSON을 변환하는데, Kotlin `listOf`의 구현 클래스(`Arrays$ArrayList`)로는 변환하지 못해 실제 값이 `null`로 읽혔다 (같은 필드의 `isEmpty()`는 통과). 기대값과 순서 검증은 그대로다
+- 2026-11-15 (리뷰 반영, 지적 6건 모두): 테스트 26개 → 34개
+  1. (중간) 요일·장비 목록의 null 원소(`["MONDAY", null]`)가 500이던 것 → DTO 원소를 nullable(`List<DayOfWeek?>`, `List<Equipment?>`)로 받고 서비스가 `InvalidInputException`으로 400. 원소 `@NotNull`은 Kotlin이 타입 어노테이션을 바이트코드에 쓰지 않아(기본 설정) 동작하지 않는다. 테스트 2개 추가
+  2. Short 범위를 넘는 숫자(`birthYear: 70000`)가 필드 없는 `INVALID_REQUEST`이던 것 → `handleHttpMessageNotReadable`이 `MismatchedInputException`뿐 아니라 경로가 있는 `JsonMappingException` 전체를 `INVALID_INPUT` + 필드로 응답. 테스트 1개 추가
+  3. 정수 필드의 소수(`sessionMinutes: 60.9`)가 잘려 받아지던 것 → 전역 `spring.jackson.deserialization.accept-float-as-int: false`. 테스트 1개 추가, 전체 테스트로 다른 API 영향 없음 확인
+  4. 테스트 5·6·15의 given 제출 결과를 확인하지 않던 것 → 상태 단언 추가
+  5. 경계값 테스트 4개 추가 (올해 14세·100세 통과, 101세 거절, 키 250.0 통과)
+  6. 동시 첫 제출이 안전한 조건(잠금 앞에 일반 조회를 두지 않음, REPEATABLE READ 스냅샷)을 서비스 주석에 남김
+  - 지적 1~3은 임시 테스트로 실제 요청을 보내 재현한 뒤 고쳤다

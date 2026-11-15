@@ -8,8 +8,11 @@ import java.time.DayOfWeek
  */
 object WorkoutDays {
 
-    fun toMask(days: Collection<DayOfWeek>): Int = TODO("009 구현")
+    fun toMask(days: Collection<DayOfWeek>): Int = days.fold(0) { acc, day -> acc or bitOf(day) }
 
     /** 월요일부터 순서대로 */
-    fun fromMask(mask: Int): List<DayOfWeek> = TODO("009 구현")
+    fun fromMask(mask: Int): List<DayOfWeek> = DayOfWeek.entries.filter { mask and bitOf(it) != 0 }
+
+    // DayOfWeek.value는 월=1 … 일=7
+    private fun bitOf(day: DayOfWeek): Int = 1 shl (day.value - 1)
 }

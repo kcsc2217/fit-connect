@@ -10,6 +10,7 @@ import com.fitness.support.UserFixtures
 import com.fitness.user.repository.UserRepository
 import com.fitness.user.security.JwtProvider
 import org.assertj.core.api.Assertions.assertThat
+import org.hamcrest.Matchers.contains
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpHeaders
@@ -86,7 +87,7 @@ class UserProfileControllerTest @Autowired constructor(
         // then
         result.andExpect {
             status { isOk() }
-            jsonPath("$.workoutDays") { value(listOf("MONDAY", "FRIDAY")) }
+            jsonPath("$.workoutDays") { value(contains("MONDAY", "FRIDAY")) }
             jsonPath("$.alarmTime") { value("07:05") }
         }
     }
@@ -112,12 +113,13 @@ class UserProfileControllerTest @Autowired constructor(
         // given
         val access = newAccess()
         mockMvc.putProfile(objectMapper, access, validProfileJson("equipment" to listOf("BARBELL", "DUMBBELL")))
+            .andExpect { status { isOk() } } // 첫 제출이 저장돼야 "빠진 장비 삭제" 경로를 탄다
 
         // when
         mockMvc.putProfile(objectMapper, access, validProfileJson("equipment" to listOf("DUMBBELL", "CABLE")))
 
         // then
-        getProfile(access).andExpect { jsonPath("$.equipment") { value(listOf("DUMBBELL", "CABLE")) } }
+        getProfile(access).andExpect { jsonPath("$.equipment") { value(contains("DUMBBELL", "CABLE")) } }
     }
 
     @Test
@@ -125,6 +127,7 @@ class UserProfileControllerTest @Autowired constructor(
         // given
         val access = newAccess()
         mockMvc.putProfile(objectMapper, access, validProfileJson("equipment" to listOf("BARBELL")))
+            .andExpect { status { isOk() } }
 
         // when
         mockMvc.putProfile(objectMapper, access, validProfileJson("equipment" to emptyList<String>()))
@@ -235,6 +238,7 @@ class UserProfileControllerTest @Autowired constructor(
         // given
         val access = newAccess()
         mockMvc.putProfile(objectMapper, access, validProfileJson("sessionMinutes" to 50))
+            .andExpect { status { isBadRequest() } } // 인증 실패 등 다른 이유가 아니라 검증 실패여야 한다
 
         // when
         val result = getMe(access)
@@ -318,6 +322,105 @@ class UserProfileControllerTest @Autowired constructor(
         val raw = jdbcTemplate.queryForObject("select workout_days from user_profile where user_id = ?", Int::class.java, userId)
         assertThat(raw).isEqualTo(21)
     }
+
+    @Test
+    fun `운동 요일 목록에 빈 값이 있으면 400 INVALID_INPUT과 workoutDays 필드 오류로 응답한다`() {
+        // given
+        val body = validProfileJson("workoutDays" to listOf("MONDAY", null))
+
+        // when
+        val result = mockMvc.putProfile(objectMapper, newAccess(), body)
+
+        // then
+        result.andExpectInvalidField("workoutDays")
+    }
+
+    @Test
+    fun `장비 목록에 빈 값이 있으면 400 INVALID_INPUT과 equipment 필드 오류로 응답한다`() {
+        // given
+        val body = validProfileJson("equipment" to listOf("BARBELL", null))
+
+        // when
+        val result = mockMvc.putProfile(objectMapper, newAccess(), body)
+
+        // then
+        result.andExpectInvalidField("equipment")
+    }
+
+    @Test
+    fun `출생 연도가 숫자 범위를 넘으면 400 INVALID_INPUT과 birthYear 필드 오류로 응답한다`() {
+        // given: Short 범위(32767) 밖
+        val body = validProfileJson("birthYear" to 70000)
+
+        // when
+        val result = mockMvc.putProfile(objectMapper, newAccess(), body)
+
+        // then
+        result.andExpectInvalidField("birthYear")
+    }
+
+    @Test
+    fun `운동 시간을 소수로 보내면 잘라서 받지 않고 400 INVALID_INPUT으로 응답한다`() {
+        // given
+        val body = validProfileJson("sessionMinutes" to 60.9)
+
+        // when
+        val result = mockMvc.putProfile(objectMapper, newAccess(), body)
+
+        // then
+        result.andExpectInvalidField("sessionMinutes")
+    }
+
+    @Test
+    fun `올해 14세가 되는 출생 연도는 받는다`() {
+        // given: 하한 경계
+        val body = validProfileJson("birthYear" to seoulThisYear() - 14)
+
+        // when
+        val result = mockMvc.putProfile(objectMapper, newAccess(), body)
+
+        // then
+        result.andExpect { status { isOk() } }
+    }
+
+    @Test
+    fun `올해 100세가 되는 출생 연도는 받는다`() {
+        // given: 상한 경계
+        val body = validProfileJson("birthYear" to seoulThisYear() - 100)
+
+        // when
+        val result = mockMvc.putProfile(objectMapper, newAccess(), body)
+
+        // then
+        result.andExpect { status { isOk() } }
+    }
+
+    @Test
+    fun `올해 101세가 되는 출생 연도면 400 INVALID_INPUT과 birthYear 필드 오류로 응답한다`() {
+        // given: 상한 바로 밖
+        val body = validProfileJson("birthYear" to seoulThisYear() - 101)
+
+        // when
+        val result = mockMvc.putProfile(objectMapper, newAccess(), body)
+
+        // then
+        result.andExpectInvalidField("birthYear")
+    }
+
+    @Test
+    fun `키가 정확히 250cm면 받는다`() {
+        // given: 상한 경계
+        val body = validProfileJson("heightCm" to 250.0)
+
+        // when
+        val result = mockMvc.putProfile(objectMapper, newAccess(), body)
+
+        // then
+        result.andExpect { status { isOk() } }
+    }
+
+    // 요청의 시간대(validProfileJson 기본값 Asia/Seoul) 기준 올해
+    private fun seoulThisYear(): Int = LocalDate.now(clock.withZone(ZoneId.of("Asia/Seoul"))).year
 
     private fun org.springframework.test.web.servlet.ResultActionsDsl.andExpectInvalidField(field: String) =
         andExpect {

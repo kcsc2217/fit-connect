@@ -1,6 +1,8 @@
 package com.fitness.user.domain
 
 import com.fitness.common.entity.BaseTimeEntity
+import com.fitness.common.exception.BusinessException
+import com.fitness.common.exception.ErrorCode
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
@@ -34,7 +36,11 @@ class User(
 
     /** 온보딩 제출: ONBOARDING이면 ACTIVE, ACTIVE면 그대로(수정), 탈퇴 회원이면 FORBIDDEN (계획 009) */
     fun completeOnboarding() {
-        TODO("009 구현")
+        when (status) {
+            UserStatus.ONBOARDING -> status = UserStatus.ACTIVE
+            UserStatus.ACTIVE -> Unit // 다시 제출 = 수정 (FR-04가 같은 API를 쓴다)
+            UserStatus.WITHDRAWN -> throw BusinessException(ErrorCode.FORBIDDEN, "탈퇴한 회원입니다")
+        }
     }
 
     fun withdraw(now: Instant) {
