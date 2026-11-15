@@ -41,6 +41,12 @@ String? redirectFor(AsyncValue<AuthState> auth, String location) {
   return target == location ? null : target;
 }
 
+/// 로그인 상태가 바뀌어 이동하는 화면은 밀려 들어오는 전환 없이 바로 바꾼다
+/// (화면을 "쌓는" 이동이 아니라 상태에 따른 교체라서).
+Page<void> Function(BuildContext, GoRouterState) _instant(Widget child) =>
+    (context, state) =>
+        NoTransitionPage<void>(key: state.pageKey, child: child);
+
 /// 화면 경로와, 로그인 상태에 따른 이동 규칙.
 final routerProvider = Provider<GoRouter>((ref) {
   // 로그인 상태가 바뀌면 redirect를 다시 계산하게 한다
@@ -56,21 +62,15 @@ final routerProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) =>
         redirectFor(ref.read(authControllerProvider), state.matchedLocation),
     routes: [
-      GoRoute(
-        path: Routes.splash,
-        builder: (context, state) => const SplashScreen(),
-      ),
-      GoRoute(
-        path: Routes.login,
-        builder: (context, state) => const LoginScreen(),
-      ),
+      GoRoute(path: Routes.splash, pageBuilder: _instant(const SplashScreen())),
+      GoRoute(path: Routes.login, pageBuilder: _instant(const LoginScreen())),
       GoRoute(
         path: Routes.onboarding,
-        builder: (context, state) => const OnboardingPlaceholderScreen(),
+        pageBuilder: _instant(const OnboardingPlaceholderScreen()),
       ),
       GoRoute(
         path: Routes.startupError,
-        builder: (context, state) => const StartupErrorScreen(),
+        pageBuilder: _instant(const StartupErrorScreen()),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) => MainShell(navigationShell: shell),

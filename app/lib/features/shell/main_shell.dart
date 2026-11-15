@@ -63,7 +63,7 @@ class TodayTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) => const ComingSoonView(
     title: '오늘의 운동',
-    description: '알림 시각에 내 기록에 맞춘 오늘의 운동을 알려드릴게요.',
+    description: '알림 시각에 오늘의 운동을 알려드릴게요.',
     icon: Icons.fitness_center_rounded,
   );
 }
@@ -74,7 +74,7 @@ class DietTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) => const ComingSoonView(
     title: '식단',
-    description: '오늘 목표 칼로리 안에서 먹을 메뉴를 추천해 드릴게요.',
+    description: '목표 칼로리에 맞는 메뉴를 추천해 드릴게요.',
     icon: Icons.restaurant_rounded,
   );
 }
@@ -85,7 +85,7 @@ class CoachTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) => const ComingSoonView(
     title: 'AI 트레이너',
-    description: '내 기록을 아는 트레이너에게 몸 상태를 물어볼 수 있어요.',
+    description: '내 기록을 아는 트레이너에게 물어보세요.',
     icon: Icons.auto_awesome_rounded,
   );
 }
@@ -96,7 +96,7 @@ class ChallengeTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) => const ComingSoonView(
     title: '챌린지',
-    description: '함께 기록하고 30일을 채우는 챌린지가 열릴 거예요.',
+    description: '함께 기록하며 30일을 채우는 챌린지예요.',
     icon: Icons.emoji_events_rounded,
   );
 }

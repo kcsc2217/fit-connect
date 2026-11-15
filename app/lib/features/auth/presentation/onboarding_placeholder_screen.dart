@@ -25,7 +25,7 @@ class OnboardingPlaceholderScreen extends ConsumerWidget {
               Text('온보딩 준비 중', style: text.headlineSmall),
               const SizedBox(height: 12),
               Text(
-                '키, 몸무게, 목표, 운동 요일을 입력하는 화면을 만들고 있어요.\n지금은 건너뛰고 둘러볼 수 있어요.',
+                '내 몸과 목표를 입력하는 화면을 만들고 있어요.\n지금은 건너뛰고 둘러볼 수 있어요.',
                 style: text.bodyLarge?.copyWith(color: AppColors.textSecondary),
               ),
               const Spacer(flex: 2),
