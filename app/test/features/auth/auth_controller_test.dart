@@ -68,6 +68,23 @@ void main() {
     );
   });
 
+  test('저장된 토큰의 회원이 서버에 없으면 토큰을 지우고 로그아웃 상태가 된다', () async {
+    // given: 토큰은 유효하지만 회원이 지워져 내 정보가 404
+    final deps = TestDeps(storage: MemoryTokenStorage(tokens('a', 'r')));
+    deps.adapter.on(
+      'GET',
+      mePath,
+      (_) => FakeResponse.problem(404, 'NOT_FOUND'),
+    );
+    final container = deps.container();
+
+    // when
+    final state = await container.read(authControllerProvider.future);
+
+    // then
+    expect((state is SignedOut, deps.storage.tokens), (true, null));
+  });
+
   test('로그인에 성공하면 토큰 4개를 저장한다', () async {
     // given
     final kakao = FakeSocialLoginClient(

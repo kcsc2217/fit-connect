@@ -23,6 +23,13 @@ class AuthController extends AsyncNotifier<AuthState> {
     } on NetworkException {
       // 토큰은 두고 다시 시도하게 한다
       return const StartupError(StartupFailure.network);
+    } on ApiException catch (e) {
+      // 토큰은 유효한데 그 회원이 서버에 없다 (지워진 회원). 다시 시도해도 같으므로 세션 만료처럼 처리한다
+      if (e.code == 'NOT_FOUND') {
+        await _storage.clear();
+        return const SignedOut();
+      }
+      return const StartupError(StartupFailure.server);
     } on AppException {
       return const StartupError(StartupFailure.server);
     }

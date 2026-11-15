@@ -100,4 +100,23 @@ void main() {
     // then
     expect(find.text('문제가 생겼어요'), findsOneWidget);
   });
+
+  testWidgets('시작 오류 화면에서 로그아웃을 누르면 로그인 화면으로 간다', (tester) async {
+    // given: 서버 오류가 계속되어 다시 시도로는 빠져나갈 수 없는 상황
+    final deps = TestDeps(storage: MemoryTokenStorage(tokens('a', 'r')));
+    deps.adapter.on(
+      'GET',
+      mePath,
+      (_) => FakeResponse.problem(500, 'INTERNAL_ERROR'),
+    );
+    deps.adapter.on('POST', logoutPath, (_) => const FakeResponse(204));
+    await pumpTestApp(tester, deps);
+
+    // when
+    await tester.tap(find.text('로그아웃'));
+    await tester.pumpAndSettle();
+
+    // then
+    expect(find.text('카카오로 시작하기'), findsOneWidget);
+  });
 }

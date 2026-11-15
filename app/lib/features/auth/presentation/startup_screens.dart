@@ -17,6 +17,7 @@ class SplashScreen extends StatelessWidget {
 }
 
 /// 앱 시작 중 내 정보를 못 받음. 토큰은 지우지 않았으므로 다시 시도하면 된다.
+/// 다시 시도로 풀리지 않으면 로그아웃해 로그인 화면으로 갈 수 있다.
 class StartupErrorScreen extends ConsumerWidget {
   const StartupErrorScreen({super.key});
 
@@ -55,6 +56,15 @@ class StartupErrorScreen extends ConsumerWidget {
                 label: '다시 시도',
                 onPressed: () =>
                     ref.read(authControllerProvider.notifier).retryStartup(),
+              ),
+              const SizedBox(height: 8),
+              // 다시 시도로 풀리지 않는 오류에서도 갇히지 않게 하는 탈출구
+              Center(
+                child: TextButton(
+                  onPressed: () =>
+                      ref.read(authControllerProvider.notifier).signOut(),
+                  child: const Text('로그아웃'),
+                ),
               ),
             ],
           ),
