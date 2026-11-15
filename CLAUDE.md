@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 내 신체 정보와 운동 기록을 아는 AI 트레이너가 매일 오늘의 운동·식단을 짜서 알려주는 앱의 백엔드. 요구사항은 `docs/prd.md`(v2), DB는 `docs/db-schema.md`가 기준이다.
 
-> **진행 상황:** 엔티티 재구성(`docs/plans/001`~`004`)으로 모든 모듈(user, workout, routine, notification, llm, challenge, analytics)의 엔티티와 마이그레이션(V1~V5)을 만들었다. 공통 에러 응답(005)과 인증 1-A(006: JWT 발급·갱신·로그아웃, 내 정보 조회)와 1-B(007: 카카오·구글 id_token 검증)까지 구현했다. 다음은 온보딩이다.
+> **진행 상황:** 엔티티 재구성(`docs/plans/001`~`004`)으로 모든 모듈(user, workout, routine, notification, llm, challenge, analytics)의 엔티티와 마이그레이션(V1~V5)을 만들었다. 공통 에러 응답(005)과 인증 1-A(006: JWT 발급·갱신·로그아웃, 내 정보 조회)와 1-B(007: 카카오·구글 id_token 검증)까지 구현했다. 008로 `app/`에 Flutter 앱 뼈대(로그인 → 내 정보, 아래 "앱")를 만들었다. 다음은 온보딩이다.
 
 ## 아키텍처 원칙
 - 숫자(무게·세트·반복 수·칼로리)는 서버 규칙이 계산한다. LLM은 종목 구성·순서·문구만 만든다.
@@ -54,7 +54,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### 자동 검증 훅 (`.claude/settings.json`)
 - Kotlin 파일 수정 직후: ktlint 포맷(설치 시) + `compileKotlin compileTestKotlin`. 실패하면 에러가 돌아오니 바로 고친다.
-- 작업 종료 시: 코드 변경이 있으면 `./gradlew test`. 실패하면 최대 3번까지 스스로 고친다.
+- Dart 파일(`app/`) 수정 직후: `dart format` + `flutter analyze` (info도 실패로 본다, CI와 같음).
+- 작업 종료 시: 서버 코드 변경이 있으면 `./gradlew test`, `app/` 변경이 있으면 `flutter test`. 실패하면 최대 3번까지 스스로 고친다.
 - 훅이 잡은 오류는 `.claude/hooks/caught.log`에 쌓인다 (`docs/ai-log.md` 기록용).
 - 턴 시작·끝 시각은 `.claude/hooks/timing.log`에 쌓인다 (UserPromptSubmit·Stop 훅). ai-log의 "Claude 작업 시간" 계산용.
 
@@ -143,6 +144,49 @@ fun `같은 FCM 토큰을 두 번 저장하면 유니크 제약 위반 예외가
     }
 }
 ```
+
+## 앱 (`app/`, Flutter)
+
+서버와 같은 저장소의 `app/` 폴더. 첫 플랫폼은 iOS(시뮬레이터). 계획은 `docs/plans/008-app-skeleton-login.md`, 디자인 기준은 `docs/design/`(다크 + 라임 레퍼런스 이미지, 화면 흐름 프로토타입).
+
+- Flutter **3.50.0** (Dart 3.14). CI도 같은 버전을 쓴다 (`.github/workflows/ci.yml`의 `app` 작업). 올리면 둘 다 바꾼다.
+- Flutter 3.50부터 Material 위젯은 `package:material_ui/material_ui.dart`에서 가져온다 (`package:flutter/material.dart` 아님).
+- 상태 관리 Riverpod 3 (코드 생성 없이 `Provider`·`Notifier`·`AsyncNotifier`를 손으로 정의), HTTP Dio, 화면 이동 go_router, 토큰은 Keychain(flutter_secure_storage).
+
+### 명령어 (`app/`에서)
+
+```bash
+flutter run --dart-define-from-file=config/local.json   # 시뮬레이터 실행 (로컬 서버 8080 필요)
+TZ=Asia/Seoul flutter test                               # 전체 테스트 (시간대 고정, CI·훅과 같음)
+flutter test test/router_test.dart                       # 파일 단위
+flutter analyze                                          # 정적 분석 (훅·CI와 같은 규칙)
+```
+
+### 설정 값 (커밋 금지)
+- `config/local.json`: Dart 쪽 값 (서버 주소, 카카오 앱 키, 구글 iOS 클라이언트 ID, 개발용 로그인). 예시는 `config/example.json`.
+- `ios/Flutter/Secrets.xcconfig`: iOS 네이티브 쪽 값 (카카오·구글 URL 스킴, `GIDClientID`). 예시는 `Secrets.example.xcconfig`. 같은 키를 두 파일에 맞춰 적는다.
+- 개발용 로그인(`DEV_LOGIN_ENABLED`)은 서버도 로컬 설정(`fitness.auth.dev-login.enabled`)일 때만 받는다. 키 없이 흐름을 확인할 때 쓴다.
+
+### 구조
+```
+lib/
+├── main.dart, app.dart, router.dart   # 시작, 테마, 화면 경로와 로그인 상태별 이동
+├── core/                              # 기능에 속하지 않는 공통 (config, network, theme, widgets)
+└── features/<기능>/                    # auth, me, shell ... (서버 모듈처럼 기능별)
+    ├── data/          # 서버 API·SDK 호출, 보관소
+    ├── domain/        # 모델, 상태(Notifier)
+    └── presentation/  # 화면
+```
+- `core`는 `features`에 의존하지 않는다. 다른 기능의 서버 호출은 그 기능의 provider로 한다 (예: 인증이 필요한 API는 `features/auth/data/auth_dio.dart`의 `authDioProvider`).
+- 서버 에러는 `toAppException`으로 `AppException`(ApiException·NetworkException·SessionExpiredException·UnknownApiException)으로 바꾸고, 화면은 문구가 아니라 `code`로 분기한다.
+- 토큰 갱신은 `AuthInterceptor` + `TokenRefresher`만 한다. 동시에 만료돼도 갱신 요청은 한 번만 나간다 (refresh는 한 번만 쓸 수 있음). 다른 곳에서 `/auth/refresh`를 직접 부르지 않는다.
+
+### 테스트
+- 서버와 같은 Given-When-Then: 본문을 `// given` `// when` `// then`으로 나누고, 이름은 한글 문장 (`test('...한다', ...)`, `testWidgets(...)`).
+- 가짜 객체는 mocktail (Mockk와 같은 역할). 서버는 `test/support/fake_http_adapter.dart`, 소셜 SDK는 `FakeSocialLoginClient`, Keychain은 `MemoryTokenStorage`로 바꾼다. 앱 전체는 `pumpTestApp(tester, TestDeps(...))`로 띄운다.
+- 여러 값을 한 번에 비교할 때 레코드 `(a, b)`를 쓰면 `==`로 비교된다. Finder나 `isA` 같은 매처는 레코드에 넣지 말고 `expect`를 나눈다.
+- Riverpod 3은 실패한 provider를 기본으로 약 38초간 자동 재시도한다. 앱과 테스트 모두 `core/network/retry_policy.dart`의 `appRetry`(AppException은 재시도 안 함)를 쓴다. 단위 테스트는 `TestDeps.container()`로 만든다.
+- 테스트는 `TZ=Asia/Seoul`로 돈다 (서버 테스트와 같은 이유). 시간 값 테스트에는 UTC와 한국 시간에서 날짜가 갈리는 값을 쓴다.
 
 ## Git 커밋 규칙
 - 커밋 메시지는 **한글로 작성**한다.
