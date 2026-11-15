@@ -32,6 +32,11 @@ class User(
     var withdrawnAt: Instant? = null
         protected set
 
+    /** 온보딩 제출: ONBOARDING이면 ACTIVE, ACTIVE면 그대로(수정), 탈퇴 회원이면 FORBIDDEN (계획 009) */
+    fun completeOnboarding() {
+        TODO("009 구현")
+    }
+
     fun withdraw(now: Instant) {
         status = UserStatus.WITHDRAWN
         withdrawnAt = now

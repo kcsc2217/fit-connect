@@ -76,6 +76,24 @@ class UserProfile(
             field = validWorkoutDays(value)
         }
 
+    /** 온보딩 다시 제출(수정): 모든 값을 한 번에 덮어쓴다 (계획 009) */
+    @Suppress("LongParameterList")
+    fun update(
+        heightCm: BigDecimal,
+        weightKg: BigDecimal,
+        birthYear: Short,
+        sex: Sex,
+        goal: Goal,
+        experience: Experience,
+        splitType: SplitType,
+        workoutDays: Int,
+        alarmTime: LocalTime,
+        timezone: String,
+        sessionMinutes: Short,
+    ) {
+        TODO("009 구현")
+    }
+
     companion object {
         val WORKOUT_DAYS_RANGE = 0..127
 
