@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/fake_http_adapter.dart';
@@ -89,5 +90,34 @@ void main() {
 
     // then
     expect(find.text('연결을 확인해 주세요'), findsOneWidget);
+  });
+
+  testWidgets('2단계 내용은 가운데가 아니라 화면 왼쪽 여백에서 시작한다', (tester) async {
+    // given: 입력칸이 없는 단계는 내용 폭이 좁아 가운데로 몰릴 수 있다
+    await pumpTestApp(tester, onboardingUser());
+    await fillStep1(tester);
+
+    // when
+    await tapText(tester, '다음');
+
+    // then: 화면 좌우 여백 24
+    expect(tester.getTopLeft(find.text('목표')).dx, 24);
+  });
+
+  testWidgets('입력칸 밖을 누르면 키보드가 닫힌다', (tester) async {
+    // given: 숫자 키패드에는 닫기 키가 없다
+    await pumpTestApp(tester, onboardingUser());
+    await tester.tap(find.byKey(const ValueKey('height')));
+    await tester.pump();
+
+    // when
+    await tester.tap(find.text('몸 정보를 알려주세요'));
+    await tester.pump();
+
+    // then
+    final field = tester.widget<EditableText>(
+      find.descendant(of: find.byKey(const ValueKey('height')), matching: find.byType(EditableText)),
+    );
+    expect(field.focusNode.hasFocus, isFalse);
   });
 }

@@ -121,10 +121,10 @@ void main() {
       timeZone: 'Asia/Seoul',
     );
 
-    // then
+    // then: 목록은 ==로 비교되지 않아 문자열로 바꿔 레코드에 넣는다
     expect(
-      (body['workoutDays'], body['alarmTime']),
-      (['MONDAY', 'FRIDAY', 'SUNDAY'], '07:05'),
+      ((body['workoutDays']! as List).join(','), body['alarmTime']),
+      ('MONDAY,FRIDAY,SUNDAY', '07:05'),
     );
   });
 }

@@ -37,21 +37,57 @@ class OnboardingDraft {
   final AlarmTime alarm;
   final int sessionMinutes;
 
-  bool get step1Valid => throw UnimplementedError('010 구현');
+  bool get heightValid => _decimalIn(heightText, 100, 250);
+  bool get weightValid => _decimalIn(weightText, 30, 300);
+  bool get ageValid => _intIn(ageText, 14, 100);
+
+  bool get step1Valid => heightValid && weightValid && ageValid && sex != null;
 
   /// 직접 고르기에서 장비를 하나도 고르지 않아도 된다 (맨몸 종목만 후보)
-  bool get step2Valid => throw UnimplementedError('010 구현');
+  bool get step2Valid =>
+      goal != null && experience != null && equipmentChoice != null;
 
-  bool get step3Valid => throw UnimplementedError('010 구현');
+  bool get step3Valid => days.isNotEmpty && split != null;
 
   /// 프리셋을 장비 목록으로 (명세 "프리셋 장비 매핑")
-  Set<Equipment> get equipment => throw UnimplementedError('010 구현');
+  Set<Equipment> get equipment => switch (equipmentChoice) {
+    EquipmentChoice.fullGym => Equipment.values.toSet(),
+    EquipmentChoice.dumbbellOnly => const {
+      Equipment.dumbbell,
+      Equipment.bench,
+      Equipment.bodyweight,
+    },
+    EquipmentChoice.bodyweight => const {
+      Equipment.bodyweight,
+      Equipment.pullupBar,
+    },
+    EquipmentChoice.custom => customEquipment,
+    null => const {},
+  };
 
-  /// [now]는 기기 시각. 출생 연도 = 기기 시간대 기준 올해 − 나이
+  /// [now]는 기기 시각. 출생 연도 = 기기 시간대 기준 올해 − 나이.
+  /// 세 단계가 모두 유효할 때만 부른다
   Map<String, Object?> toRequestJson({
     required DateTime now,
     required String timeZone,
-  }) => throw UnimplementedError('010 구현');
+  }) => {
+    'heightCm': double.parse(heightText),
+    'weightKg': double.parse(weightText),
+    'birthYear': now.toLocal().year - int.parse(ageText),
+    'sex': sex!.wire,
+    'goal': goal!.wire,
+    'experience': experience!.wire,
+    'equipment': (equipment.toList()..sort((a, b) => a.index - b.index))
+        .map((e) => e.wire)
+        .toList(),
+    'workoutDays': (days.toList()..sort())
+        .map((d) => _dayWires[d - 1])
+        .toList(),
+    'splitType': split!.wire,
+    'alarmTime': '${_two(alarm.hour)}:${_two(alarm.minute)}',
+    'timezone': timeZone,
+    'sessionMinutes': sessionMinutes,
+  };
 
   OnboardingDraft copyWith({
     String? heightText,
@@ -81,3 +117,32 @@ class OnboardingDraft {
     sessionMinutes: sessionMinutes ?? this.sessionMinutes,
   );
 }
+
+// "175", "175.5"만 통과. "175.25", "1e2", ""는 거절 (서버 @Digits(fraction=1)와 같게)
+final _oneDecimal = RegExp(r'^\d{1,3}(\.\d)?$');
+final _wholeNumber = RegExp(r'^\d{1,3}$');
+
+bool _decimalIn(String text, num min, num max) {
+  if (!_oneDecimal.hasMatch(text)) return false;
+  final value = double.parse(text);
+  return value >= min && value <= max;
+}
+
+bool _intIn(String text, int min, int max) {
+  if (!_wholeNumber.hasMatch(text)) return false;
+  final value = int.parse(text);
+  return value >= min && value <= max;
+}
+
+String _two(int n) => n.toString().padLeft(2, '0');
+
+// DateTime.monday(1) … DateTime.sunday(7) → 서버 DayOfWeek 이름
+const _dayWires = [
+  'MONDAY',
+  'TUESDAY',
+  'WEDNESDAY',
+  'THURSDAY',
+  'FRIDAY',
+  'SATURDAY',
+  'SUNDAY',
+];
