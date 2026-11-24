@@ -57,6 +57,8 @@ class OnboardingController extends Notifier<OnboardingState> {
   OnboardingState build() => const OnboardingState();
 
   void edit(OnboardingDraft Function(OnboardingDraft) change) {
+    // 보내는 중에는 바꾸지 않는다 (보낸 값과 화면 값이 달라지지 않게)
+    if (state.submitting) return;
     // 값을 고치면 지난 제출 실패 문구는 지운다
     state = state.copyWith(draft: change(state.draft), clearFailure: true);
   }
@@ -82,8 +84,12 @@ class OnboardingController extends Notifier<OnboardingState> {
 
   /// 3단계 입력이 유효하고 보내는 중이 아닐 때만 보낸다. 성공하면 로그인 상태가 Active가 된다
   Future<void> submit() async {
-    // 보내는 중 다시 눌러도 한 번만
-    if (state.submitting || !state.draft.step3Valid) return;
+    // 보내는 중 다시 눌러도 한 번만. 세 단계가 모두 유효할 때만 (toRequestJson이 모든 값을 쓴다)
+    final draft = state.draft;
+    if (state.submitting ||
+        !(draft.step1Valid && draft.step2Valid && draft.step3Valid)) {
+      return;
+    }
     state = state.copyWith(submitting: true, clearFailure: true);
     try {
       final body = state.draft.toRequestJson(
@@ -110,6 +116,9 @@ class OnboardingController extends Notifier<OnboardingState> {
             : SubmitFailure.server,
       );
     } on AppException {
+      state = state.copyWith(submitting: false, failure: SubmitFailure.server);
+    } on Object {
+      // 예상하지 못한 예외도 진행 표시에 갇히지 않게 다시 보낼 수 있는 상태로 돌린다
       state = state.copyWith(submitting: false, failure: SubmitFailure.server);
     }
   }

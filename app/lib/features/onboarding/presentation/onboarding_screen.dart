@@ -87,7 +87,14 @@ class OnboardingScreen extends ConsumerWidget {
                   keyboardDismissBehavior:
                       ScrollViewKeyboardDismissBehavior.onDrag,
                   // 입력칸이 없는 단계(칩만 있는 2·3단계)도 왼쪽 여백에서 시작하도록 폭을 채운다
-                  child: SizedBox(width: double.infinity, child: body),
+                  child: SizedBox(
+                    width: double.infinity,
+                    // 보내는 중에는 선택지를 누를 수 없게 한다
+                    child: IgnorePointer(
+                      ignoring: state.submitting,
+                      child: body,
+                    ),
+                  ),
                 ),
               ),
               Padding(

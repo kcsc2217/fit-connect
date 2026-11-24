@@ -23,6 +23,7 @@ class TestDeps {
     this.devLoginEnabled = false,
     DateTime? now,
     Future<String> Function()? timeZoneReader,
+    this.extraOverrides = const [],
   }) : adapter = adapter ?? FakeHttpAdapter(),
        now = now ?? DateTime.utc(2026, 11, 24, 3),
        timeZoneReader = timeZoneReader ?? (() async => 'Asia/Seoul'),
@@ -42,6 +43,9 @@ class TestDeps {
   /// 기기 시간대 읽기 (실제 플러그인을 부르지 않는다)
   final Future<String> Function() timeZoneReader;
 
+  /// 테스트마다 더 바꿔 끼울 provider (예: 예외를 던지는 API)
+  final List<Override> extraOverrides;
+
   List<Override> get overrides => [
     appConfigProvider.overrideWithValue(
       AppConfig(apiBaseUrl: 'http://test', devLoginEnabled: devLoginEnabled),
@@ -51,6 +55,7 @@ class TestDeps {
     if (clients != null) socialLoginClientsProvider.overrideWithValue(clients!),
     clockProvider.overrideWithValue(() => now),
     timeZoneReaderProvider.overrideWithValue(timeZoneReader),
+    ...extraOverrides,
   ];
 
   /// 단위 테스트용 컨테이너. 재시도 정책은 앱과 같다 (appRetry).

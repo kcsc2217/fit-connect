@@ -50,6 +50,8 @@ class _UnitTextFieldState extends State<UnitTextField> {
       onChanged: widget.onChanged,
       keyboardType: TextInputType.numberWithOptions(decimal: widget.decimal),
       inputFormatters: [
+        // 소수점이 쉼표인 지역(독일 등)의 키패드는 ','를 낸다. 서버 형식인 '.'으로 바꾼다
+        if (widget.decimal) _commaToDot,
         FilteringTextInputFormatter.allow(
           RegExp(widget.decimal ? r'[0-9.]' : r'[0-9]'),
         ),
@@ -82,3 +84,8 @@ class _UnitTextFieldState extends State<UnitTextField> {
     );
   }
 }
+
+final _commaToDot = TextInputFormatter.withFunction(
+  (oldValue, newValue) =>
+      newValue.copyWith(text: newValue.text.replaceAll(',', '.')),
+);
