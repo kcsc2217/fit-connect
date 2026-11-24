@@ -70,8 +70,8 @@ class AuthController extends AsyncNotifier<AuthState> {
     if (state.value is! SignedOut) state = const AsyncData(SignedOut());
   }
 
-  /// 온보딩 자리 화면의 "건너뛰기". 서버 상태는 바꾸지 않는다 (앱을 다시 켜면 다시 보인다).
-  void skipOnboarding() {
+  /// 온보딩 제출 성공 (서버 상태가 ACTIVE가 됨). 라우터가 오늘 탭으로 보낸다
+  void onboardingCompleted() {
     if (state.value is Onboarding) state = const AsyncData(Active());
   }
 

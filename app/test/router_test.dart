@@ -26,7 +26,7 @@ TestDeps _kakaoLoginAs(String status) {
 }
 
 void main() {
-  testWidgets('ONBOARDING 회원이 로그인하면 온보딩 준비 중 화면으로 간다', (tester) async {
+  testWidgets('ONBOARDING 회원이 로그인하면 온보딩 1단계 화면으로 간다', (tester) async {
     // given
     await pumpTestApp(tester, _kakaoLoginAs('ONBOARDING'));
 
@@ -35,21 +35,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // then
-    expect(find.text('온보딩 준비 중'), findsOneWidget);
-  });
-
-  testWidgets('온보딩 준비 중 화면에서 건너뛰기를 누르면 오늘 탭으로 간다', (tester) async {
-    // given
-    await pumpTestApp(tester, _kakaoLoginAs('ONBOARDING'));
-    await tester.tap(find.text('카카오로 시작하기'));
-    await tester.pumpAndSettle();
-
-    // when
-    await tester.tap(find.text('건너뛰기'));
-    await tester.pumpAndSettle();
-
-    // then
-    expect(find.text('오늘의 운동'), findsOneWidget);
+    expect(find.text('몸 정보를 알려주세요'), findsOneWidget);
   });
 
   testWidgets('ACTIVE 회원이 로그인하면 오늘 탭으로 간다', (tester) async {

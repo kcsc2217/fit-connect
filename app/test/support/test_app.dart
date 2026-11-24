@@ -5,9 +5,11 @@ import 'package:trainer_ssaem/app.dart';
 import 'package:trainer_ssaem/core/config/app_config.dart';
 import 'package:trainer_ssaem/core/network/http_client.dart';
 import 'package:trainer_ssaem/core/network/retry_policy.dart';
+import 'package:trainer_ssaem/core/time/clock.dart';
 import 'package:trainer_ssaem/features/auth/data/social/social_login_client.dart';
 import 'package:trainer_ssaem/features/auth/data/token_storage.dart';
 import 'package:trainer_ssaem/features/auth/domain/auth_models.dart';
+import 'package:trainer_ssaem/features/onboarding/data/device_time_zone.dart';
 
 import 'fake_http_adapter.dart';
 import 'memory_token_storage.dart';
@@ -19,7 +21,11 @@ class TestDeps {
     MemoryTokenStorage? storage,
     this.clients,
     this.devLoginEnabled = false,
+    DateTime? now,
+    Future<String> Function()? timeZoneReader,
   }) : adapter = adapter ?? FakeHttpAdapter(),
+       now = now ?? DateTime.utc(2026, 11, 24, 3),
+       timeZoneReader = timeZoneReader ?? (() async => 'Asia/Seoul'),
        storage = storage ?? MemoryTokenStorage();
 
   final FakeHttpAdapter adapter;
@@ -30,6 +36,12 @@ class TestDeps {
   final Map<AuthProvider, SocialLoginClient>? clients;
   final bool devLoginEnabled;
 
+  /// 지금 시각 (clockProvider). 기본은 고정 시각
+  final DateTime now;
+
+  /// 기기 시간대 읽기 (실제 플러그인을 부르지 않는다)
+  final Future<String> Function() timeZoneReader;
+
   List<Override> get overrides => [
     appConfigProvider.overrideWithValue(
       AppConfig(apiBaseUrl: 'http://test', devLoginEnabled: devLoginEnabled),
@@ -37,6 +49,8 @@ class TestDeps {
     httpClientAdapterProvider.overrideWithValue(adapter),
     tokenStorageProvider.overrideWithValue(storage),
     if (clients != null) socialLoginClientsProvider.overrideWithValue(clients!),
+    clockProvider.overrideWithValue(() => now),
+    timeZoneReaderProvider.overrideWithValue(timeZoneReader),
   ];
 
   /// 단위 테스트용 컨테이너. 재시도 정책은 앱과 같다 (appRetry).
