@@ -72,6 +72,26 @@ void main() {
     );
   });
 
+  test('제출이 입력값 오류면 입력을 확인하라는 실패를 알린다', () async {
+    // given: 연말 경계 등으로 서버가 출생 연도를 거절한 경우
+    final deps = onboardingUser();
+    deps.adapter.on(
+      'PUT',
+      profilePath,
+      (_) => FakeResponse.problem(400, 'INVALID_INPUT'),
+    );
+    final (container, controller) = await _ready(deps);
+
+    // when
+    await controller.submit();
+
+    // then
+    expect(
+      container.read(onboardingControllerProvider).failure,
+      SubmitFailure.invalidInput,
+    );
+  });
+
   test('보내는 중에 다시 제출해도 요청은 한 번만 보낸다', () async {
     // given: 서버 응답을 붙잡아 두어 첫 제출이 끝나지 않게 한다
     final deps = onboardingUser();

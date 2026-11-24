@@ -12,6 +12,10 @@ enum SubmitFailure {
   /// 연결 실패·타임아웃
   network,
 
+  /// 서버가 입력값을 거절 (INVALID_INPUT). 앱 검증을 통과했어도 연말·연초 경계에서 기기 시계와 서버 시계가
+  /// 어긋나면 나이 14세·100세의 출생 연도가 거절될 수 있다 (명세 예외 표 "알려진 한계")
+  invalidInput,
+
   /// 서버 오류, 형식이 다른 응답, 예상하지 못한 에러 코드
   server,
 }
@@ -99,7 +103,12 @@ class OnboardingController extends Notifier<OnboardingState> {
         await ref.read(authControllerProvider.notifier).signOut();
         return;
       }
-      state = state.copyWith(submitting: false, failure: SubmitFailure.server);
+      state = state.copyWith(
+        submitting: false,
+        failure: e.code == 'INVALID_INPUT'
+            ? SubmitFailure.invalidInput
+            : SubmitFailure.server,
+      );
     } on AppException {
       state = state.copyWith(submitting: false, failure: SubmitFailure.server);
     }

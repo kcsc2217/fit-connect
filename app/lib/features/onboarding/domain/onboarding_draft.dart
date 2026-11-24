@@ -65,7 +65,8 @@ class OnboardingDraft {
     null => const {},
   };
 
-  /// [now]는 기기 시각. 출생 연도 = 기기 시간대 기준 올해 − 나이.
+  /// [now]는 기기 시각. 출생 연도 = 기기 시계·시간대 기준 올해 − 나이 ([timeZone] 값은 쓰지 않는다).
+  /// 서버는 [timeZone]과 서버 시계로 올해를 정하므로 연말·연초 몇 초 사이에는 어긋날 수 있다 (명세 알려진 한계).
   /// 세 단계가 모두 유효할 때만 부른다
   Map<String, Object?> toRequestJson({
     required DateTime now,

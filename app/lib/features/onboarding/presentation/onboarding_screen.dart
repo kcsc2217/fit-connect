@@ -98,6 +98,7 @@ class OnboardingScreen extends ConsumerWidget {
                       Text(
                         switch (state.failure!) {
                           SubmitFailure.network => '연결을 확인해 주세요',
+                          SubmitFailure.invalidInput => '입력한 정보를 다시 확인해 주세요',
                           SubmitFailure.server => '문제가 생겼어요. 잠시 후 다시 시도해 주세요',
                         },
                         style: text.bodyMedium?.copyWith(
