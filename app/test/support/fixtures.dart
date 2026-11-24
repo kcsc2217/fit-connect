@@ -41,3 +41,4 @@ const mePath = '/api/v1/users/me';
 const loginPath = '/api/v1/auth/login';
 const refreshPath = '/api/v1/auth/refresh';
 const logoutPath = '/api/v1/auth/logout';
+const profilePath = '/api/v1/users/me/profile';

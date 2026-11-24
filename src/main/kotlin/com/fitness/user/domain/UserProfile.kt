@@ -76,6 +76,34 @@ class UserProfile(
             field = validWorkoutDays(value)
         }
 
+    /** 온보딩 다시 제출(수정): 모든 값을 한 번에 덮어쓴다 (계획 009) */
+    @Suppress("LongParameterList")
+    fun update(
+        heightCm: BigDecimal,
+        weightKg: BigDecimal,
+        birthYear: Short,
+        sex: Sex,
+        goal: Goal,
+        experience: Experience,
+        splitType: SplitType,
+        workoutDays: Int,
+        alarmTime: LocalTime,
+        timezone: String,
+        sessionMinutes: Short,
+    ) {
+        this.heightCm = heightCm
+        this.weightKg = weightKg
+        this.birthYear = birthYear
+        this.sex = sex
+        this.goal = goal
+        this.experience = experience
+        this.splitType = splitType
+        this.workoutDays = workoutDays // setter가 0~127 범위를 검증한다
+        this.alarmTime = alarmTime
+        this.timezone = timezone
+        this.sessionMinutes = sessionMinutes
+    }
+
     companion object {
         val WORKOUT_DAYS_RANGE = 0..127
 

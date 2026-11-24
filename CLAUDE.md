@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 내 신체 정보와 운동 기록을 아는 AI 트레이너가 매일 오늘의 운동·식단을 짜서 알려주는 앱의 백엔드. 요구사항은 `docs/prd.md`(v2), DB는 `docs/db-schema.md`가 기준이다.
 
-> **진행 상황:** 엔티티 재구성(`docs/plans/001`~`004`)으로 모든 모듈(user, workout, routine, notification, llm, challenge, analytics)의 엔티티와 마이그레이션(V1~V5)을 만들었다. 공통 에러 응답(005)과 인증 1-A(006: JWT 발급·갱신·로그아웃, 내 정보 조회)와 1-B(007: 카카오·구글 id_token 검증)까지 구현했다. 008로 `app/`에 Flutter 앱 뼈대(로그인 → 내 정보, 아래 "앱")를 만들었다. 다음은 온보딩이다.
+> **진행 상황:** 엔티티 재구성(`docs/plans/001`~`004`)으로 모든 모듈(user, workout, routine, notification, llm, challenge, analytics)의 엔티티와 마이그레이션(V1~V5)을 만들었다. 공통 에러 응답(005)과 인증 1-A(006: JWT 발급·갱신·로그아웃, 내 정보 조회)와 1-B(007: 카카오·구글 id_token 검증)까지 구현했다. 008로 `app/`에 Flutter 앱 뼈대(로그인 → 내 정보, 아래 "앱")를 만들었고, 카카오·구글 실제 로그인을 시뮬레이터에서 확인했다. 온보딩(`docs/specs/onboarding.md`)은 서버 009(프로필 제출·조회 API)와 앱 010(3단계 입력 화면)으로 구현했다. 다음은 핵심 루프(운동 기록, 오늘의 운동)다.
 
 ## 아키텍처 원칙
 - 숫자(무게·세트·반복 수·칼로리)는 서버 규칙이 계산한다. LLM은 종목 구성·순서·문구만 만든다.
@@ -14,7 +14,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 멱등성이 필요한 쓰기는 `(user_id, client_id)` 유니크 제약 + upsert로 처리한다.
 - 동시성이 필요한 쓰기(챌린지 정원 등)는 `docs/decisions/`의 결정을 따른다. Redis 원자 연산 + DB 유니크 제약을 최후 안전망으로 둔다.
 - 서버 메모리에 상태를 두지 않는다 (여러 대로 늘려도 동작해야 한다).
-- 성공 응답은 DTO를 감싸지 않고 그대로 반환한다. 에러는 ProblemDetail + `code`로 응답한다 (`docs/decisions/0003-error-response-format.md`). 우리 코드는 `BusinessException(ErrorCode)`를 던지고, 새 에러 코드는 기능을 만들 때 `ErrorCode`에 추가한다.
+- 성공 응답은 DTO를 감싸지 않고 그대로 반환한다. 에러는 ProblemDetail + `code`로 응답한다 (`docs/decisions/0003-error-response-format.md`). 우리 코드는 `BusinessException(ErrorCode)`를 던지고, 새 에러 코드는 기능을 만들 때 `ErrorCode`에 추가한다. 서비스에서 하는 입력 검증(현재 시각·시간대가 필요한 값)은 `InvalidInputException(field, reason)`을 던지면 `@Valid` 실패와 같은 `INVALID_INPUT` + `errors[]`로 응답한다.
 
 ## 작업 절차
 모든 작업은 `docs/workflow.md`의 절차(명세 → 계획 → 테스트 먼저 → 구현 → 리뷰 → 성능 확인 → 기록)를 따른다. 각 단계에는 `.claude/skills/`의 스킬이 있다.
@@ -78,7 +78,7 @@ com.fitness
 │   ├── entity/          # BaseTimeEntity
 │   ├── type/            # 여러 모듈이 같이 쓰는 값 (Equipment 등)
 │   └── exception/       # GlobalExceptionHandler, BusinessException, ErrorCode (에러 응답 형식은 ADR 0003)
-├── user/                # 소셜 로그인, JWT, 온보딩 프로필, 장비, 기기 토큰   ← 인증 1-A·1-B 구현됨 (security/, client/)
+├── user/                # 소셜 로그인, JWT, 온보딩 프로필, 장비, 기기 토큰   ← 인증 1-A·1-B, 온보딩 프로필(009) 구현됨
 ├── workout/             # 종목 사전, 세션·세트 기록, 오프라인 동기화, PR·주간 볼륨   ← 엔티티·후보 종목 조회 구현됨
 ├── routine/             # 오늘의 운동 생성 (서버 규칙 + LLM), 기본 루틴 대체   ← 엔티티 구현됨
 ├── notification/        # 알림 예약, FCM 푸시, 발송 기록   ← 엔티티 구현됨
@@ -172,7 +172,7 @@ flutter analyze                                          # 정적 분석 (훅·C
 lib/
 ├── main.dart, app.dart, router.dart   # 시작, 테마, 화면 경로와 로그인 상태별 이동
 ├── core/                              # 기능에 속하지 않는 공통 (config, network, theme, widgets)
-└── features/<기능>/                    # auth, me, shell ... (서버 모듈처럼 기능별)
+└── features/<기능>/                    # auth, onboarding, me, shell ... (서버 모듈처럼 기능별)
     ├── data/          # 서버 API·SDK 호출, 보관소
     ├── domain/        # 모델, 상태(Notifier)
     └── presentation/  # 화면
@@ -187,6 +187,8 @@ lib/
 - 여러 값을 한 번에 비교할 때 레코드 `(a, b)`를 쓰면 `==`로 비교된다. Finder나 `isA` 같은 매처는 레코드에 넣지 말고 `expect`를 나눈다.
 - Riverpod 3은 실패한 provider를 기본으로 약 38초간 자동 재시도한다. 앱과 테스트 모두 `core/network/retry_policy.dart`의 `appRetry`(AppException은 재시도 안 함)를 쓴다. 단위 테스트는 `TestDeps.container()`로 만든다.
 - 테스트는 `TZ=Asia/Seoul`로 돈다 (서버 테스트와 같은 이유). 시간 값 테스트에는 UTC와 한국 시간에서 날짜가 갈리는 값을 쓴다.
+- 지금 시각은 `DateTime.now()`가 아니라 `core/time/clock.dart`의 `clockProvider`로 읽는다 (서버의 `Clock` 빈과 같은 역할). 기기 시간대 이름(IANA)은 `deviceTimeZoneProvider`(flutter_timezone, 실패 시 Asia/Seoul). `TestDeps`가 둘 다 고정값으로 바꿔 끼운다 (`now`, `timeZoneReader`).
+- 레코드 안의 `List`는 `==`로 비교되지 않는다 (같은 내용이어도 다르다고 나옴). 목록은 `join`한 문자열로 바꿔 넣거나 `expect`를 나눈다.
 
 ## Git 커밋 규칙
 - 커밋 메시지는 **한글로 작성**한다.
