@@ -21,6 +21,9 @@ enum class ErrorCode(
     UNSUPPORTED_PROVIDER(HttpStatus.BAD_REQUEST, "지원하지 않는 로그인 방식입니다"),
     FORBIDDEN(HttpStatus.FORBIDDEN, "권한이 없습니다"),
     SOCIAL_LOGIN_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "소셜 로그인에 잠시 연결할 수 없습니다"), // 공개키 조회 실패 (ADR 0005)
+
+    // 운동 기록 (계획 011). 같은 회원의 다른 동기화가 끝나지 않아 기다리다 시간이 넘음. 앱은 잠시 뒤 다시 보낸다
+    SYNC_BUSY(HttpStatus.SERVICE_UNAVAILABLE, "기록을 저장하는 중입니다. 잠시 후 다시 시도해 주세요"),
     ;
 
     companion object {

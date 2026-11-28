@@ -27,6 +27,18 @@ class ExerciseServiceTest @Autowired constructor(
 ) {
 
     @Test
+    fun `비활성 종목은 종목 사전 목록에 없다`() {
+        // given
+        val inactive = exerciseRepository.save(WorkoutFixtures.exercise("TEST_INACTIVE", active = false))
+
+        // when
+        val codes = exerciseService.findAllActive().map { it.code }
+
+        // then
+        assertThat(codes).doesNotContain(inactive.code)
+    }
+
+    @Test
     fun `필요한 장비 중 하나라도 없으면 후보에서 빠진다`() {
         // given
         val barbellOnly = save("TEST_BARBELL_ONLY", Equipment.BARBELL)

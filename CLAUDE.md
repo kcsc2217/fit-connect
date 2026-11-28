@@ -6,12 +6,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 내 신체 정보와 운동 기록을 아는 AI 트레이너가 매일 오늘의 운동·식단을 짜서 알려주는 앱의 백엔드. 요구사항은 `docs/prd.md`(v2), DB는 `docs/db-schema.md`가 기준이다.
 
-> **진행 상황:** 엔티티 재구성(`docs/plans/001`~`004`)으로 모든 모듈(user, workout, routine, notification, llm, challenge, analytics)의 엔티티와 마이그레이션(V1~V5)을 만들었다. 공통 에러 응답(005)과 인증 1-A(006: JWT 발급·갱신·로그아웃, 내 정보 조회)와 1-B(007: 카카오·구글 id_token 검증)까지 구현했다. 008로 `app/`에 Flutter 앱 뼈대(로그인 → 내 정보, 아래 "앱")를 만들었고, 카카오·구글 실제 로그인을 시뮬레이터에서 확인했다. 온보딩(`docs/specs/onboarding.md`)은 서버 009(프로필 제출·조회 API)와 앱 010(3단계 입력 화면)으로 구현했다. 다음은 핵심 루프(운동 기록, 오늘의 운동)다.
+> **진행 상황:** 엔티티 재구성(`docs/plans/001`~`004`)으로 모든 모듈(user, workout, routine, notification, llm, challenge, analytics)의 엔티티와 마이그레이션(V1~V5)을 만들었다. 공통 에러 응답(005)과 인증 1-A(006: JWT 발급·갱신·로그아웃, 내 정보 조회)와 1-B(007: 카카오·구글 id_token 검증)까지 구현했다. 008로 `app/`에 Flutter 앱 뼈대(로그인 → 내 정보, 아래 "앱")를 만들었고, 카카오·구글 실제 로그인을 시뮬레이터에서 확인했다. 온보딩(`docs/specs/onboarding.md`)은 서버 009(프로필 제출·조회 API)와 앱 010(3단계 입력 화면)으로 구현했다. 운동 기록(`docs/specs/workout-logging.md`)은 서버 011(묶음 동기화·종목 조회 API)까지 구현했고, 다음은 앱 012(기록 화면·기기 저장소·자동 전송)다.
 
 ## 아키텍처 원칙
 - 숫자(무게·세트·반복 수·칼로리)는 서버 규칙이 계산한다. LLM은 종목 구성·순서·문구만 만든다.
 - LLM에는 서버가 SQL로 거른 후보 종목만 넘긴다. LLM 응답은 JSON 스키마·규칙 검증을 통과해야 저장하고, 실패하면 대체 응답(기본 루틴)을 쓴다.
-- 멱등성이 필요한 쓰기는 `(user_id, client_id)` 유니크 제약 + upsert로 처리한다.
+- 멱등성이 필요한 쓰기는 `(user_id, client_id)` 유니크 제약 + upsert로 처리한다. 운동 기록 동기화(011)는 JDBC로 "INSERT 시도 → 중복 키면 조건부 UPDATE(`deleted = 0 AND client_updated_at < 새 값`)"를 하고, 같은 회원의 동기화는 Redis 락(`workout-sync:{userId}`, 트랜잭션 밖에서 잡고 커밋 뒤 해제)으로 줄 세운다. 락 없이 같은 키가 동시에 오면 MySQL 데드락이 난다 (중복 키 INSERT의 S 잠금 → UPDATE의 X 잠금).
 - 동시성이 필요한 쓰기(챌린지 정원 등)는 `docs/decisions/`의 결정을 따른다. Redis 원자 연산 + DB 유니크 제약을 최후 안전망으로 둔다.
 - 서버 메모리에 상태를 두지 않는다 (여러 대로 늘려도 동작해야 한다).
 - 성공 응답은 DTO를 감싸지 않고 그대로 반환한다. 에러는 ProblemDetail + `code`로 응답한다 (`docs/decisions/0003-error-response-format.md`). 우리 코드는 `BusinessException(ErrorCode)`를 던지고, 새 에러 코드는 기능을 만들 때 `ErrorCode`에 추가한다. 서비스에서 하는 입력 검증(현재 시각·시간대가 필요한 값)은 `InvalidInputException(field, reason)`을 던지면 `@Valid` 실패와 같은 `INVALID_INPUT` + `errors[]`로 응답한다.
@@ -79,7 +79,7 @@ com.fitness
 │   ├── type/            # 여러 모듈이 같이 쓰는 값 (Equipment 등)
 │   └── exception/       # GlobalExceptionHandler, BusinessException, ErrorCode (에러 응답 형식은 ADR 0003)
 ├── user/                # 소셜 로그인, JWT, 온보딩 프로필, 장비, 기기 토큰   ← 인증 1-A·1-B, 온보딩 프로필(009) 구현됨
-├── workout/             # 종목 사전, 세션·세트 기록, 오프라인 동기화, PR·주간 볼륨   ← 엔티티·후보 종목 조회 구현됨
+├── workout/             # 종목 사전, 세션·세트 기록, 오프라인 동기화, PR·주간 볼륨   ← 후보 종목 조회, 묶음 동기화·종목 조회 API(011) 구현됨
 ├── routine/             # 오늘의 운동 생성 (서버 규칙 + LLM), 기본 루틴 대체   ← 엔티티 구현됨
 ├── notification/        # 알림 예약, FCM 푸시, 발송 기록   ← 엔티티 구현됨
 ├── llm/                 # LLM 클라이언트, 프롬프트 버전, 호출 로그, 재시도·대체   ← 엔티티 구현됨
