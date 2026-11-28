@@ -28,4 +28,4 @@ PRD v2 10장 기준. 1차 설계(ERD, API 목록)가 정리되면 갱신한다.
 - **기록 동기화:** 앱 로컬 저장 → 최대 100건 묶음 전송 → `(user_id, client_id)` upsert, last-write-wins, tombstone 삭제 → 세션 종료 이벤트로 PR·볼륨 비동기 갱신.
 - **챌린지 신청:** Redis Lua로 정원·중복 확인 → DB 유니크 제약 최후 안전망.
 
-설계 판단은 `docs/decisions/`에 ADR로 남긴다.
+설계 판단은 `docs/decisions/`에 ADR로 남긴다. 트래픽이 몰리는 지점과 가정 수치, 부하 테스트 기준은 `docs/traffic-design.md`에 있다.

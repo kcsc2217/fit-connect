@@ -4,9 +4,9 @@ import 'package:material_ui/material_ui.dart';
 import 'package:trainer_ssaem/features/auth/domain/auth_controller.dart';
 import 'package:trainer_ssaem/features/auth/domain/auth_state.dart';
 import 'package:trainer_ssaem/features/auth/presentation/login_screen.dart';
-import 'package:trainer_ssaem/features/auth/presentation/onboarding_placeholder_screen.dart';
 import 'package:trainer_ssaem/features/auth/presentation/startup_screens.dart';
 import 'package:trainer_ssaem/features/me/presentation/me_screen.dart';
+import 'package:trainer_ssaem/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:trainer_ssaem/features/shell/main_shell.dart';
 
 abstract final class Routes {
@@ -66,7 +66,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: Routes.login, pageBuilder: _instant(const LoginScreen())),
       GoRoute(
         path: Routes.onboarding,
-        pageBuilder: _instant(const OnboardingPlaceholderScreen()),
+        pageBuilder: _instant(const OnboardingScreen()),
       ),
       GoRoute(
         path: Routes.startupError,

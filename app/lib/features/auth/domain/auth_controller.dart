@@ -23,6 +23,13 @@ class AuthController extends AsyncNotifier<AuthState> {
     } on NetworkException {
       // 토큰은 두고 다시 시도하게 한다
       return const StartupError(StartupFailure.network);
+    } on ApiException catch (e) {
+      // 토큰은 유효한데 그 회원이 서버에 없다 (지워진 회원). 다시 시도해도 같으므로 세션 만료처럼 처리한다
+      if (e.code == 'NOT_FOUND') {
+        await _storage.clear();
+        return const SignedOut();
+      }
+      return const StartupError(StartupFailure.server);
     } on AppException {
       return const StartupError(StartupFailure.server);
     }
@@ -70,8 +77,8 @@ class AuthController extends AsyncNotifier<AuthState> {
     if (state.value is! SignedOut) state = const AsyncData(SignedOut());
   }
 
-  /// 온보딩 자리 화면의 "건너뛰기". 서버 상태는 바꾸지 않는다 (앱을 다시 켜면 다시 보인다).
-  void skipOnboarding() {
+  /// 온보딩 제출 성공 (서버 상태가 ACTIVE가 됨). 라우터가 오늘 탭으로 보낸다
+  void onboardingCompleted() {
     if (state.value is Onboarding) state = const AsyncData(Active());
   }
 
