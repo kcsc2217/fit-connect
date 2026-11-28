@@ -130,6 +130,7 @@ com.fitness
 - API 테스트는 `@IntegrationTest`(`support/`)를 붙인다. 앱 전체를 띄워 MockMvc(Kotlin DSL `mockMvc.get {}`)로 요청하고, DB 설정은 `@RepositoryTest`와 같다.
   - **롤백하지 않는다** (동시성 테스트와 실제 커밋 동작을 확인하기 위해). 대신 테스트마다 고유한 값(`AuthTestSupport.uniqueDevId()` 등)으로 데이터를 만들어 서로 영향을 주지 않게 한다.
   - 인증이 필요한 API는 `mockMvc.loginAsDev(objectMapper)`로 받은 access를 `Authorization: Bearer` 헤더에 넣는다 (`support/AuthTestSupport`).
+  - 종목 사전처럼 **여러 테스트가 같이 보는 기준 데이터**를 통합 테스트에서 추가하면 `finally`에서 직접 지운다. 남기면 `ExerciseSeedTest`(종목 사전을 CSV와 통째로 비교)가 실행 순서에 따라 실패한다: Flyway clean은 테스트 컨텍스트가 처음 뜰 때만 돌고 컨텍스트는 재사용되므로, 로컬에서 통과해도 CI에서 깨질 수 있다.
 
 ```kotlin
 @Test

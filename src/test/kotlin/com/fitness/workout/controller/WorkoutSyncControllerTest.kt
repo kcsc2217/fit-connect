@@ -478,21 +478,29 @@ class WorkoutSyncControllerTest @Autowired constructor(
 
     @Test
     fun `저장 뒤 종목이 비활성화돼도 그 세트를 지울 수 있다`() {
-        // given: 테스트 전용 종목으로 세트를 저장한 뒤 종목을 비활성화한다
+        // given: 테스트 전용 종목으로 세트를 저장한 뒤 종목을 비활성화한다.
+        // 통합 테스트는 롤백하지 않으므로, 종목 사전에 넣은 행은 끝나고 직접 지운다
+        // (남기면 종목 사전을 CSV와 통째로 비교하는 ExerciseSeedTest가 실행 순서에 따라 실패한다)
         val access = newAccess()
         val exercise = exerciseRepository.save(WorkoutFixtures.exercise("TEST_SYNC_" + UUID.randomUUID().toString().take(8)))
-        val s = session()
-        val t = set(s.clientId, exercise.id!!)
-        mockMvc.sync(objectMapper, access, SyncRequest(listOf(s), listOf(t)))
-        exercise.active = false
-        exerciseRepository.save(exercise)
+        try {
+            val s = session()
+            val t = set(s.clientId, exercise.id!!)
+            mockMvc.sync(objectMapper, access, SyncRequest(listOf(s), listOf(t)))
+            exercise.active = false
+            exerciseRepository.save(exercise)
 
-        // when
-        mockMvc.sync(objectMapper, access, SyncRequest(sets = listOf(t.copy(deleted = true, clientUpdatedAt = T0.plusSeconds(60)))))
+            // when
+            mockMvc.sync(objectMapper, access, SyncRequest(sets = listOf(t.copy(deleted = true, clientUpdatedAt = T0.plusSeconds(60)))))
 
-        // then
-        val saved = workoutSetRepository.findByUserIdAndClientId(jwtProvider.userIdOf(access), t.clientId)
-        assertThat(saved?.deleted).isTrue()
+            // then
+            val saved = workoutSetRepository.findByUserIdAndClientId(jwtProvider.userIdOf(access), t.clientId)
+            assertThat(saved?.deleted).isTrue()
+        } finally {
+            // 세트가 종목을 FK로 가리키므로 세트부터 지운다
+            jdbcTemplate.update("DELETE FROM workout_set WHERE exercise_id = ?", exercise.id)
+            jdbcTemplate.update("DELETE FROM exercise WHERE id = ?", exercise.id)
+        }
     }
 
     @Test
