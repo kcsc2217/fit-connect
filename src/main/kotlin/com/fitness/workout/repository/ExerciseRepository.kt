@@ -10,6 +10,12 @@ interface ExerciseRepository : JpaRepository<Exercise, Long> {
 
     fun findByCode(code: String): Exercise?
 
+    // 종목 사전 (계획 011). body_part는 VARCHAR라 이름의 알파벳 순으로 정렬된다
+    fun findAllByActiveTrueOrderByBodyPartAscIdAsc(): List<Exercise>
+
+    @Query("SELECT e.id FROM Exercise e WHERE e.active = true")
+    fun findActiveIds(): List<Long>
+
     // 필요한 장비를 모두 가진 활성 종목 (필요 장비가 없는 맨몸 종목 포함). equipments는 비어 있으면 안 된다
     @Query(
         """

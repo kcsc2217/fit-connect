@@ -24,7 +24,7 @@ class ExerciseControllerTest @Autowired constructor(
         // when
         val body = mockMvc.get("/api/v1/exercises") {
             header(HttpHeaders.AUTHORIZATION, "Bearer $access")
-        }.andReturn().response.contentAsString
+        }.andReturn().response.getContentAsString(Charsets.UTF_8) // 응답에 charset이 없으면 ISO-8859-1로 읽혀 한글이 깨진다
 
         // then: 정렬 순서(부위 이름 → id)가 지켜진다
         val items = objectMapper.readTree(body).map { it["bodyPart"].asText() to it["id"].asLong() }
@@ -39,7 +39,7 @@ class ExerciseControllerTest @Autowired constructor(
         // when
         val body = mockMvc.get("/api/v1/exercises") {
             header(HttpHeaders.AUTHORIZATION, "Bearer $access")
-        }.andReturn().response.contentAsString
+        }.andReturn().response.getContentAsString(Charsets.UTF_8) // 응답에 charset이 없으면 ISO-8859-1로 읽혀 한글이 깨진다
 
         // then: 시드의 바벨 벤치 프레스 (docs/data/exercises.csv)
         val bench = objectMapper.readTree(body).first { it["code"].asText() == "BENCH_PRESS" }

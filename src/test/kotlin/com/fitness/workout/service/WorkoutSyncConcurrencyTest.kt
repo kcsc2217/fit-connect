@@ -11,7 +11,10 @@ import com.fitness.user.security.JwtProvider
 import com.fitness.user.service.AuthService
 import com.fitness.workout.dto.SyncRequest
 import com.fitness.workout.repository.ExerciseRepository
+import com.fitness.common.exception.BusinessException
+import com.fitness.common.exception.ErrorCode
 import org.assertj.core.api.Assertions.assertThat
+import org.redisson.api.RedissonClient
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -29,6 +32,7 @@ class WorkoutSyncConcurrencyTest @Autowired constructor(
     private val jwtProvider: JwtProvider,
     private val exerciseRepository: ExerciseRepository,
     private val jdbcTemplate: JdbcTemplate,
+    private val redissonClient: RedissonClient,
 ) {
 
     private val pool = Executors.newFixedThreadPool(THREADS)
@@ -88,6 +92,23 @@ class WorkoutSyncConcurrencyTest @Autowired constructor(
 
         // then
         assertThat(results.count { it.isSuccess } to setRows(userId)).isEqualTo(2 to 20)
+    }
+
+    @Test
+    fun `같은 회원의 다른 동기화가 락을 오래 잡고 있으면 SYNC_BUSY로 거절한다`() {
+        // given: 다른 요청이 이 회원의 동기화 락을 잡고 놓지 않는다 (테스트 대기 한도는 application-test.yml)
+        val userId = newUserId()
+        val lock = redissonClient.getLock(WorkoutSyncService.lockKey(userId))
+        lock.lock()
+
+        // when: 다른 스레드에서 동기화 (Redisson 락은 같은 스레드면 다시 잡을 수 있어서)
+        val result = pool.submit<Result<Any>> {
+            runCatching { workoutSyncService.sync(userId, SyncRequest(sessions = listOf(session()))) }
+        }.get(20, TimeUnit.SECONDS)
+
+        // then
+        lock.unlock()
+        assertThat((result.exceptionOrNull() as? BusinessException)?.errorCode).isEqualTo(ErrorCode.SYNC_BUSY)
     }
 
     companion object {

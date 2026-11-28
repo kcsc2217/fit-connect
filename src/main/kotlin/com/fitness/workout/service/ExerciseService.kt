@@ -29,8 +29,8 @@ class ExerciseService(
     }
 
     /** 종목 사전 (활성 종목, 부위·id 순) */
-    fun findAllActive(): List<Exercise> = TODO("011 구현")
+    fun findAllActive(): List<Exercise> = exerciseRepository.findAllByActiveTrueOrderByBodyPartAscIdAsc()
 
     /** 활성 종목 id (동기화 검증용) */
-    fun activeIds(): Set<Long> = TODO("011 구현")
+    fun activeIds(): Set<Long> = exerciseRepository.findActiveIds().toSet()
 }
