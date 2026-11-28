@@ -10,8 +10,9 @@ import java.util.UUID
  * SyncItemValidator가 항목마다 검증한다. 형식 오류(UUID·시각 해석 실패)는 요청 전체를 400으로 막는다.
  */
 data class SyncRequest(
-    val sessions: List<SessionChange> = emptyList(),
-    val sets: List<SetChange> = emptyList(),
+    // 원소가 nullable인 이유: Jackson은 [null]의 null을 그대로 넣는다. 서비스가 400으로 막는다 (리뷰 2)
+    val sessions: List<SessionChange?> = emptyList(),
+    val sets: List<SetChange?> = emptyList(),
 )
 
 data class SessionChange(

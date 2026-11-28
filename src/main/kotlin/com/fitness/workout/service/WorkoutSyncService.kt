@@ -8,10 +8,13 @@ import com.fitness.workout.dto.FailReason
 import com.fitness.workout.dto.ItemResult
 import com.fitness.workout.dto.ItemType
 import com.fitness.workout.dto.Outcome
+import com.fitness.workout.dto.SessionChange
+import com.fitness.workout.dto.SetChange
 import com.fitness.workout.dto.SyncRequest
 import com.fitness.workout.dto.SyncResponse
 import com.fitness.workout.repository.WorkoutSyncJdbcRepository
 import org.redisson.api.RedissonClient
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.stereotype.Service
@@ -38,6 +41,8 @@ class WorkoutSyncService(
     private val transactionTemplate: TransactionTemplate,
     @Value("\${fitness.workout.sync-lock-wait:5s}") private val lockWait: Duration,
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)
+
     /**
      * 항목마다 upsert(last-write-wins, tombstone)하고 요청 순서대로 결과를 돌려준다.
      *
@@ -47,7 +52,9 @@ class WorkoutSyncService(
      * 아직 커밋되지 않은 행과 다시 부딪힌다. 다른 회원끼리는 키가 달라 기다리지 않는다. DB 유니크는 최후 안전망이다.
      */
     fun sync(userId: Long, request: SyncRequest): SyncResponse {
-        val total = request.sessions.size + request.sets.size
+        val sessions = requireItems(request.sessions, "sessions") { it.clientId }
+        val sets = requireItems(request.sets, "sets") { it.clientId }
+        val total = sessions.size + sets.size
         if (total !in 1..MAX_ITEMS) {
             throw InvalidInputException("items", "한 번에 1~${MAX_ITEMS}건만 보낼 수 있습니다")
         }
@@ -55,23 +62,36 @@ class WorkoutSyncService(
         // 시간을 정하지 않으면 Redisson watchdog이 30초마다 연장하고, 서버가 죽으면 30초 뒤 풀린다
         if (!lock.tryLock(lockWait.toMillis(), TimeUnit.MILLISECONDS)) throw BusinessException(ErrorCode.SYNC_BUSY)
         try {
-            return transactionTemplate.execute { syncInTransaction(userId, request) }!!
+            return transactionTemplate.execute { syncInTransaction(userId, sessions, sets) }!!
         } finally {
-            lock.unlock()
+            // 커밋은 끝났다. 해제 실패(Redis 끊김, watchdog 만료)로 결과를 500으로 바꾸거나 원래 예외를 가리지 않는다.
+            // 못 푼 락은 watchdog이 더 연장하지 않으므로 30초 안에 풀린다 (리뷰 4)
+            runCatching { if (lock.isHeldByCurrentThread) lock.unlock() }
+                .onFailure { log.warn("동기화 락 해제 실패: userId={}", userId, it) }
         }
     }
 
-    private fun syncInTransaction(userId: Long, request: SyncRequest): SyncResponse {
+    // null 원소와 같은 묶음 안 중복 client_id는 요청 형식 오류로 막는다 (리뷰 2·5)
+    private fun <T : Any> requireItems(items: List<T?>, field: String, clientId: (T) -> UUID): List<T> {
+        if (items.any { it == null }) throw InvalidInputException(field, "목록에 빈 원소가 있습니다")
+        val nonNull = items.filterNotNull()
+        if (nonNull.map(clientId).toSet().size != nonNull.size) {
+            throw InvalidInputException(field, "같은 clientId가 한 묶음에 두 번 있습니다")
+        }
+        return nonNull
+    }
+
+    private fun syncInTransaction(userId: Long, sessions: List<SessionChange>, sets: List<SetChange>): SyncResponse {
         userService.requireRecordable(userId)
 
         val now = clock.instant()
         val results = HashMap<Pair<ItemType, UUID>, ItemResult>()
 
         // 1) 세션 먼저: 같은 묶음의 세트가 이 세션들을 가리킬 수 있다.
-        //    client_id 순으로 처리해 겹치는 묶음끼리 잠금 순서를 맞춘다 (데드락 줄이기)
-        val existingSessions = repo.findSessionClientIds(userId, request.sessions.map { it.clientId })
-        for (s in request.sessions.sortedBy { it.clientId }) {
-            val reason = validator.session(s)
+        //    client_id 순으로 처리해 겹치는 묶음끼리 잠금 순서를 맞춘다
+        val existingSessions = repo.findSessionClientIds(userId, sessions.map { it.clientId })
+        for (s in sessions.sortedBy { it.clientId }) {
+            val reason = validator.session(s, now)
             val outcome = reason?.let { Outcome.FAILED } ?: upsert(
                 exists = s.clientId in existingSessions,
                 insert = { repo.insertSession(userId, s, clamp(s.clientUpdatedAt, now), now) },
@@ -80,28 +100,32 @@ class WorkoutSyncService(
             results[ItemType.SESSION to s.clientId] = ItemResult(s.clientId, ItemType.SESSION, outcome, reason)
         }
 
-        // 2) 세트: 가리키는 세션의 서버 id와 활성 종목을 한 번에 읽어 둔다
-        val sessionIds = repo.findSessionIds(userId, request.sets.map { it.sessionClientId }.toSet())
-        val activeExercises = if (request.sets.isEmpty()) emptySet() else exerciseService.activeIds()
-        val existingSets = repo.findSetClientIds(userId, request.sets.map { it.clientId })
-        for (t in request.sets.sortedBy { it.clientId }) {
+        // 2) 세트: 가리키는 세션의 서버 id와 활성 종목을 한 번에 읽어 둔다.
+        //    삭제된 세션을 가리키는 세트도 저장한다. 집계(오늘의 운동, FR-24)가 삭제된 세션의 세트를 빼고 읽는다 (명세)
+        val sessionIds = repo.findSessionIds(userId, sets.map { it.sessionClientId }.toSet())
+        val activeExercises = if (sets.isEmpty()) emptySet() else exerciseService.activeIds()
+        val existingSets = repo.findSetClientIds(userId, sets.map { it.clientId })
+        for (t in sets.sortedBy { it.clientId }) {
             val sessionId = sessionIds[t.sessionClientId]
-            val reason = validator.set(t) ?: when {
-                t.exerciseId !in activeExercises -> FailReason.UNKNOWN_EXERCISE
+            val exists = t.clientId in existingSets
+            val reason = validator.set(t, now) ?: when {
+                // 활성 종목 확인은 새로 넣을 때만: UPDATE는 exercise_id를 바꾸지 않으므로, 저장 뒤 비활성화된 종목의
+                // 세트도 지우거나 고칠 수 있어야 한다 (리뷰 3)
+                !exists && t.exerciseId !in activeExercises -> FailReason.UNKNOWN_EXERCISE
                 sessionId == null -> FailReason.SESSION_NOT_FOUND
                 else -> null
             }
             val outcome = reason?.let { Outcome.FAILED } ?: upsert(
-                exists = t.clientId in existingSets,
+                exists = exists,
                 insert = { repo.insertSet(userId, sessionId!!, t, clamp(t.clientUpdatedAt, now), now) },
                 update = { repo.updateSet(userId, t, clamp(t.clientUpdatedAt, now), now) },
             )
             results[ItemType.SET to t.clientId] = ItemResult(t.clientId, ItemType.SET, outcome, reason)
         }
 
-        // 요청 순서대로 (세션들, 세트들)
-        val ordered = request.sessions.map { results.getValue(ItemType.SESSION to it.clientId) } +
-            request.sets.map { results.getValue(ItemType.SET to it.clientId) }
+        // 요청 순서대로 (세션들, 세트들). 묶음 안 client_id는 타입별로 겹치지 않으므로 키가 하나씩 대응한다
+        val ordered = sessions.map { results.getValue(ItemType.SESSION to it.clientId) } +
+            sets.map { results.getValue(ItemType.SET to it.clientId) }
         return SyncResponse(ordered)
     }
 
@@ -127,8 +151,8 @@ class WorkoutSyncService(
 
     companion object {
         const val MAX_ITEMS = 100
+        private val MAX_CLOCK_SKEW: Duration = Duration.ofMinutes(5)
 
         fun lockKey(userId: Long) = "workout-sync:$userId"
-        private val MAX_CLOCK_SKEW: Duration = Duration.ofMinutes(5)
     }
 }

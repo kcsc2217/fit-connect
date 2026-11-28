@@ -12,6 +12,13 @@ import com.fitness.support.SyncTestSupport.session
 import com.fitness.support.SyncTestSupport.set
 import com.fitness.support.SyncTestSupport.sync
 import com.fitness.support.UserFixtures
+import com.fitness.support.WorkoutFixtures
+import com.fitness.workout.service.WorkoutSyncService
+import org.redisson.api.RedissonClient
+import java.time.Instant
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import com.fitness.user.repository.UserRepository
 import com.fitness.user.security.JwtProvider
 import com.fitness.workout.dto.SyncRequest
@@ -40,6 +47,7 @@ class WorkoutSyncControllerTest @Autowired constructor(
     private val workoutSetRepository: WorkoutSetRepository,
     private val jdbcTemplate: JdbcTemplate,
     private val clock: Clock,
+    private val redissonClient: RedissonClient,
 ) {
 
     private val bench: Long by lazy { exerciseRepository.findByCode("BENCH_PRESS")!!.id!! }
@@ -331,9 +339,11 @@ class WorkoutSyncControllerTest @Autowired constructor(
 
     @Test
     fun `결과는 요청 순서대로 돌려준다`() {
-        // given: client_id 정렬 순서와 요청 순서가 다르게
+        // given: client_id 정렬 순서와 요청 순서가 반대가 되도록 내림차순 고정 UUID (랜덤이면 우연히 같을 수 있다)
         val s = session()
-        val sets = (0 until 5).map { set(s.clientId, bench, setOrder = it) }
+        val sets = (5 downTo 1).map {
+            set(s.clientId, bench, clientId = UUID.fromString("00000000-0000-0000-0000-00000000000$it"), setOrder = it)
+        }
         val request = SyncRequest(listOf(s), sets)
 
         // when
@@ -406,6 +416,110 @@ class WorkoutSyncControllerTest @Autowired constructor(
         result.andExpect {
             status { isForbidden() }
             jsonPath("$.code") { value("FORBIDDEN") }
+        }
+    }
+    @Test
+    fun `시각이 저장할 수 있는 범위를 벗어난 세션은 INVALID_VALUE로 실패하고 나머지 항목은 저장한다`() {
+        // given: DB DATETIME 범위(9999년)를 넘는 시작 시각 + 정상 세션
+        val bad = session(startedAt = Instant.parse("+10000-01-01T00:00:00Z"))
+        val ok = session()
+
+        // when
+        val response = mockMvc.sync(objectMapper, newAccess(), SyncRequest(sessions = listOf(bad, ok)))
+
+        // then: 묶음 전체가 500이 되지 않는다
+        assertThat(response.resultOf(bad.clientId)["reason"].asText() to response.resultOf(ok.clientId)["outcome"].asText())
+            .isEqualTo("INVALID_VALUE" to "APPLIED")
+    }
+
+    @Test
+    fun `2000년보다 이른 수행 시각의 세트는 INVALID_VALUE로 실패한다`() {
+        // given
+        val s = session()
+        val t = set(s.clientId, bench).copy(performedAt = Instant.parse("1999-12-31T23:59:59Z"))
+
+        // when
+        val response = mockMvc.sync(objectMapper, newAccess(), SyncRequest(listOf(s), listOf(t)))
+
+        // then
+        assertThat(response.resultOf(t.clientId)["reason"].asText()).isEqualTo("INVALID_VALUE")
+    }
+
+    @Test
+    fun `목록에 빈 원소가 있으면 400 INVALID_INPUT으로 응답한다`() {
+        // given: Jackson은 목록의 null 원소를 그대로 넣는다
+        val body = mapOf("sessions" to listOf(null))
+
+        // when
+        val result = mockMvc.postSync(objectMapper, newAccess(), body)
+
+        // then
+        result.andExpect {
+            status { isBadRequest() }
+            jsonPath("$.code") { value("INVALID_INPUT") }
+        }
+    }
+
+    @Test
+    fun `한 묶음에 같은 client_id가 두 번 있으면 400 INVALID_INPUT으로 응답한다`() {
+        // given
+        val s = session()
+        val request = SyncRequest(sessions = listOf(s, s.copy(clientUpdatedAt = T0.plusSeconds(1))))
+
+        // when
+        val result = mockMvc.postSync(objectMapper, newAccess(), request)
+
+        // then
+        result.andExpect {
+            status { isBadRequest() }
+            jsonPath("$.code") { value("INVALID_INPUT") }
+        }
+    }
+
+    @Test
+    fun `저장 뒤 종목이 비활성화돼도 그 세트를 지울 수 있다`() {
+        // given: 테스트 전용 종목으로 세트를 저장한 뒤 종목을 비활성화한다
+        val access = newAccess()
+        val exercise = exerciseRepository.save(WorkoutFixtures.exercise("TEST_SYNC_" + UUID.randomUUID().toString().take(8)))
+        val s = session()
+        val t = set(s.clientId, exercise.id!!)
+        mockMvc.sync(objectMapper, access, SyncRequest(listOf(s), listOf(t)))
+        exercise.active = false
+        exerciseRepository.save(exercise)
+
+        // when
+        mockMvc.sync(objectMapper, access, SyncRequest(sets = listOf(t.copy(deleted = true, clientUpdatedAt = T0.plusSeconds(60)))))
+
+        // then
+        val saved = workoutSetRepository.findByUserIdAndClientId(jwtProvider.userIdOf(access), t.clientId)
+        assertThat(saved?.deleted).isTrue()
+    }
+
+    @Test
+    fun `같은 회원의 다른 동기화가 락을 오래 잡고 있으면 503 SYNC_BUSY로 응답한다`() {
+        // given: 다른 스레드가 이 회원의 동기화 락을 잡고 있다 (Redisson 락은 같은 스레드면 다시 잡을 수 있어서)
+        val access = newAccess()
+        val held = CountDownLatch(1)
+        val release = CountDownLatch(1)
+        val holder = Executors.newSingleThreadExecutor()
+        holder.submit {
+            val lock = redissonClient.getLock(WorkoutSyncService.lockKey(jwtProvider.userIdOf(access)))
+            lock.lock()
+            held.countDown()
+            release.await()
+            lock.unlock()
+        }
+        held.await(10, TimeUnit.SECONDS)
+
+        // when
+        val result = mockMvc.postSync(objectMapper, access, SyncRequest(sessions = listOf(session())))
+
+        // then
+        release.countDown()
+        holder.shutdown()
+        result.andExpect {
+            status { isServiceUnavailable() }
+            jsonPath("$.code") { value("SYNC_BUSY") }
         }
     }
 }
