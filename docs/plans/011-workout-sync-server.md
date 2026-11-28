@@ -216,5 +216,13 @@ fun session(s: SessionChange): FailReason? = when {
   - 해결: Redisson 락 `workout-sync:{userId}`로 같은 회원의 동기화를 줄 세운다. 락은 트랜잭션 시작 전에 잡고 커밋 뒤에 푼다(`TransactionTemplate`). 커밋 전에 풀면 다음 요청이 커밋 안 된 행과 다시 부딪힌다. 다른 회원끼리는 기다리지 않는다. DB 유니크는 최후 안전망으로 그대로 둔다 (CLAUDE.md 동시성 원칙)
   - 락을 `fitness.workout.sync-lock-wait`(기본 5초, 테스트 1초) 안에 못 잡으면 503 `SYNC_BUSY`(ErrorCode 추가), 앱은 다시 보낸다. 락 시간을 정하지 않아 Redisson watchdog이 연장하고, 서버가 죽으면 30초 뒤 풀린다
   - 테스트 추가: `같은 회원의 다른 동기화가 락을 오래 잡고 있으면 SYNC_BUSY로 거절한다`. 테스트 27개 → 28개 (서버 전체 181개)
+  - **왜 Redisson인가 (다른 방식과 비교).** 막아야 할 것은 "아직 없는 행을 같은 회원의 요청 여러 개가 동시에 넣을 때"의 경쟁이다
+    - 낙관적 락(`@Version`): 이미 있는 행을 두 요청이 고칠 때의 덮어쓰기 유실을 잡는 방식이라, 비교할 버전이 없는 INSERT 경쟁에는 맞지 않는다. 덮어쓰기 유실은 조건부 UPDATE(`client_updated_at < 새 값`)가 이미 막는다
+    - 비관적 락(세트 행에 `SELECT … FOR UPDATE`): 없는 행에 걸면 REPEATABLE READ에서 빈 구간(gap) 잠금이 걸리고, 여러 요청이 같은 구간을 잡은 채 서로의 INSERT를 기다리는 또 다른 데드락 패턴이 된다
+    - 비관적 락(회원 행 `users … FOR UPDATE`, 009 방식): 동작은 하지만 user 모듈 테이블을 workout이 잠가 모듈 경계를 넘고, 동기화 동안 프로필 수정 같은 다른 회원 작업까지 막는다
+    - MySQL 이름 락(`GET_LOCK`): DB만으로 회원별로 줄 세울 수 있어 대안이 된다. 다만 락이 DB 커넥션에 묶여, 커넥션 풀과 Spring 트랜잭션 아래에서 "트랜잭션 전에 잡고 커밋 뒤 같은 커넥션으로 푼다"를 직접 맞춰야 한다
+    - 데드락 시 재시도: 결과는 맞지만(멱등) 데드락 자체는 계속 나고, 몰리면 되돌림·재시도가 반복된다
+    - Redisson을 고른 이유: Redis와 `redisson-spring-boot-starter`가 이미 있고(refresh 토큰, ADR 0004), 락이 DB 커넥션과 분리돼 `TransactionTemplate` 앞뒤로 감싸기만 하면 되며, `tryLock` 대기 한도와 watchdog(서버가 죽으면 30초 뒤 해제)을 그대로 쓸 수 있다. 서버를 여러 대로 늘려도 동작하고, CLAUDE.md 동시성 원칙(Redis + DB 유니크 최후 안전망)과 같은 모양이라 챌린지 선착순과 패턴을 맞출 수 있다
+    - 감수한 점: Redis 장애 때 동기화가 실패한다(앱이 기기 기록을 다시 보내 유실은 없음, 로그인 갱신과 같은 장애 범위). 장애 조치 중 락이 잠깐 겹칠 수 있어(Redlock 논쟁) DB 유니크를 최후 안전망으로 남겼고, 그때 최악은 중복 행이 아니라 데드락 500 한 번이다. 락 왕복 1~2ms는 성능 측정(p95 22ms)에 포함돼 있다
 - 2026-11-28 (구현 중, 사용자 승인): 종목 필드 테스트가 응답 본문을 `contentAsString`(charset 없는 응답은 ISO-8859-1로 읽음)으로 읽어 한글이 깨졌다 → `getContentAsString(UTF_8)`로 읽는다. 기대값은 그대로
 - 2026-11-28 (성능 확인): 로컬(MySQL·Redis 로컬, MockMvc로 HTTP 계층 포함)에서 세션 1 + 세트 99 = 100건 묶음을 30번 보냄. 새로 넣기 p50 13ms·p95 22ms·최대 32ms, 같은 묶음 재전송(모두 IGNORED) p50 12ms·p95 17ms·최대 39ms. 목표 p95 300ms 안. 운영 환경(네트워크 왕복)에서는 다시 잰다. 묶음 저장(멀티 로우 INSERT) 최적화는 지금 필요 없음
