@@ -21,4 +21,8 @@ class UserService(
         val providers = socialAccountRepository.findAllByUserId(userId).map { it.provider }
         return MeResponse.of(user, providers)
     }
+
+    /** 기록을 쓸 수 있는 회원인지 확인한다. 없으면 NOT_FOUND, 탈퇴했으면 FORBIDDEN (다른 모듈이 user 저장소를 직접 쓰지 않게) */
+    @Transactional(readOnly = true)
+    fun requireRecordable(userId: Long): Unit = TODO("011 구현")
 }
